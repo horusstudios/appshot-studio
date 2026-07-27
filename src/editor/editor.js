@@ -11,6 +11,7 @@ import { BACKGROUND_PRESETS, BACKGROUND_PRESET_IDS, PATTERNS, resolveBackground 
 import { DEVICES } from '/src/core/devices.js';
 import { FONTS, FONT_IDS, googleFontsHref } from '/src/core/fonts.js';
 import { newFrame, getPath, setPath } from '/src/core/project.js';
+import { SETS, SET_IDS, applySet } from '/src/core/sets.js';
 
 // ---------------------------------------------------------------- boot
 document.head.insertAdjacentHTML(
@@ -135,6 +136,7 @@ function drawGrid() {
           deviceId: state.device,
           orientation: state.project.orientation,
           assetURL,
+          index: i,
         });
         const s = 206 / width;
         return `<div class="gcard${i === state.sel ? ' on' : ''}" data-i="${i}">
@@ -163,6 +165,7 @@ function drawCanvas() {
     deviceId: state.device,
     orientation: state.project.orientation,
     assetURL,
+    index: state.sel,
   });
   host.innerHTML = html;
   const stage = $('#stage').getBoundingClientRect();
@@ -187,6 +190,7 @@ function drawThumbs() {
       deviceId: state.device,
       orientation: state.project.orientation,
       assetURL,
+      index: i,
     });
     const s = 146 / width;
     const div = document.createElement('div');
@@ -232,6 +236,7 @@ function refreshGridCard(i) {
     deviceId: state.device,
     orientation: state.project.orientation,
     assetURL,
+    index: i,
   });
   const s = 206 / width;
   card.querySelector('.gshot').style.height = height * s + 'px';
@@ -276,6 +281,59 @@ $('#modalClose').onclick = closeModal;
 $('#modal').onclick = (e) => { if (e.target.id === 'modal') closeModal(); };
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModal(); });
 
+// Style packs — pick a finished look for the WHOLE set first, tweak later.
+function openPackGallery() {
+  if (!state.project.frames.length) return toast('Add screenshots first');
+
+  const cards = SET_IDS.map((id) => {
+    const clone = JSON.parse(JSON.stringify(state.project));
+    applySet(clone, id);
+    const shown = clone.frames.slice(0, 3);
+    const strip = shown
+      .map((f, j) => {
+        const { html, width, height } = renderFrame({
+          frame: f,
+          project: clone,
+          deviceId: state.device,
+          orientation: clone.orientation,
+          assetURL,
+          index: j,
+        });
+        const s = 74 / width;
+        return `<div class="sh" style="width:74px;height:${height * s}px">
+          <div class="tw" style="transform:scale(${s})">${html}</div></div>`;
+      })
+      .join('');
+    // Sürekli setlerde araya boşluk koymuyoruz ki akış hemen görünsün.
+    const seamless = SETS[id].sequence.some((t) => TEMPLATES[t].continuous);
+    return `<div class="packcard${state.project.set === id ? ' on' : ''}" data-pack="${id}">
+      <div class="strip${seamless ? ' seamless' : ''}">${strip}</div>
+      <div class="meta"><b>${SETS[id].name}</b><span>${SETS[id].hint}</span>
+        <em>${SETS[id].sequence.join(' · ')}</em></div>
+    </div>`;
+  }).join('');
+
+  openModal(
+    'Style Packs — tüm sete tek tıkla uygula',
+    `<div class="pack-note">Önce buradan bir set seç: arkaplan, tipografi ve her karenin
+      düzeni birlikte gelir, hiçbir kare yarım kalmaz. Sonra istediğin kareyi sağdaki
+      panelden tek tek değiştirebilirsin.<br>
+      <b>Panorama</b> setlerinde arkaplan ve cihazlar kareden kareye devam eder.</div>
+     <div class="packgal">${cards}</div>`
+  );
+
+  $('#modalBody').onclick = (e) => {
+    const card = e.target.closest('[data-pack]');
+    if (!card) return;
+    applySet(state.project, card.dataset.pack);
+    save();
+    closeModal();
+    paint();
+    buildInspector();
+    toast(`"${SETS[card.dataset.pack].name}" uygulandı`);
+  };
+}
+
 // Visual template gallery — every template rendered with THIS frame's content.
 function openTemplateGallery() {
   const f = frame();
@@ -288,6 +346,7 @@ function openTemplateGallery() {
       deviceId: state.device,
       orientation: state.project.orientation,
       assetURL,
+      index: state.sel,
     });
     const s = 146 / width;
     return `<div class="tplcard${id === current ? ' on' : ''}" data-pick="${id}">
@@ -694,6 +753,7 @@ async function addShots(files, replaceCurrent) {
   paint();
   buildInspector();
   toast(`${files.length} screenshot(s) added`);
+  if (!state.project.set) openPackGallery();
 }
 
 // drag & drop
@@ -715,6 +775,7 @@ document.addEventListener('drop', async (e) => {
 // topbar
 $('#zoom').oninput = (e) => { state.zoom = +e.target.value / 100; drawCanvas(); };
 $('#claudeBtn').onclick = openClaudePanel;
+$('#packsBtn').onclick = openPackGallery;
 document.querySelectorAll('#viewTabs button').forEach((b) => {
   b.onclick = () => {
     document.querySelectorAll('#viewTabs button').forEach((x) => x.classList.toggle('on', x === b));
@@ -767,6 +828,9 @@ async function openProject(name) {
   buildDeviceTabs();
   paint();
   buildInspector();
+  // Bir set seçilmeden tek tek kare düzenlemek yarım kalmış setlere yol açıyor;
+  // o yüzden ilk açılışta pack seçtiriyoruz.
+  if (!state.project.set && state.project.frames.length) openPackGallery();
 }
 
 async function loadProjects(select) {

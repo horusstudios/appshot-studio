@@ -134,6 +134,34 @@ export const TEMPLATES = {
     devices: [{ w: 74, y: 36, x: 16, rotate: 11 }],
   },
 
+  // --- continuous: the set reads as ONE wide artwork sliced into screenshots ---
+  'pano-flow': {
+    name: 'Panorama — flow',
+    hint: 'Arkaplan tüm set boyunca akar; komşu ekranların cihazları kenardan görünür.',
+    continuous: 'full',
+    text: { y: 6, height: 22, align: 'center', width: 84, anchor: 'top' },
+    devices: [{ w: 96, y: 36, x: 0, rotate: 0 }],
+    tablet: { devices: [{ w: 92, y: 37, x: 0, rotate: 0 }] },
+  },
+
+  'pano-tilt': {
+    name: 'Panorama — tilt',
+    hint: 'Eğik cihazlardan oluşan kesintisiz şerit. Set halinde çok güçlü durur.',
+    continuous: 'full',
+    text: { y: 6, height: 22, align: 'center', width: 84, anchor: 'top' },
+    devices: [{ w: 106, y: 38, x: 0, rotate: -7 }],
+    tablet: { devices: [{ w: 100, y: 38, x: 0, rotate: -5 }] },
+  },
+
+  'pano-hero': {
+    name: 'Panorama — sadece arkaplan',
+    hint: 'Cihazlar bağımsız, sadece arkaplan tüm set boyunca devam eder.',
+    continuous: 'background',
+    text: { y: 6, height: 22, align: 'center', width: 86, anchor: 'top' },
+    devices: [{ w: 66, y: 30, x: 0, rotate: 0 }],
+    tablet: { devices: [{ w: 68, y: 30, x: 0, rotate: 0 }] },
+  },
+
   'peek-bottom': {
     name: 'Peek',
     hint: 'Only the top third of the device shows — very editorial.',
@@ -157,6 +185,7 @@ export function getTemplate(id, deviceKind = 'phone') {
     text: { x: 0, ...t.text },
     devices: t.devices.map((d) => ({ x: 0, rotate: 0, z: 1, ...d })),
     scrim: t.scrim || null,
+    continuous: t.continuous || null,
   };
   if (deviceKind === 'tablet' && t.tablet) {
     if (t.tablet.text) base.text = { ...base.text, ...t.tablet.text };

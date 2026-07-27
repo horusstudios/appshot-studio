@@ -14,6 +14,7 @@ import {
 } from '../server/store.js';
 import { newFrame, parseFrameSelector, setPath } from '../core/project.js';
 import { setScreenshot } from '../core/render.js';
+import { SETS, SET_IDS, applySet } from '../core/sets.js';
 import { TEMPLATES, TEMPLATE_IDS } from '../core/templates.js';
 import { BACKGROUND_PRESETS, BACKGROUND_PRESET_IDS, PATTERNS } from '../core/backgrounds.js';
 import { DEVICES, DEVICE_IDS } from '../core/devices.js';
@@ -134,6 +135,24 @@ commands.add = (a) => {
   }
   saveProject(name, p);
   ok(`added ${files.length} frame(s) — ${p.frames.length} total`);
+};
+
+commands.packs = () => {
+  for (const id of SET_IDS) {
+    const s = SETS[id];
+    console.log(`  ${id.padEnd(16)} ${s.name.padEnd(18)} ${s.hint}`);
+    console.log(`  ${''.padEnd(16)} ${'sıra:'.padEnd(18)} ${s.sequence.join(' → ')}`);
+  }
+};
+
+commands.pack = (a) => {
+  const name = a._[0] || die('usage: appshot pack <project> <pack-id>   (appshot packs = liste)');
+  const setId = a._[1] || die(`give a pack id. Available: ${SET_IDS.join(', ')}`);
+  const p = loadProject(name);
+  applySet(p, setId);
+  saveProject(name, p);
+  ok(`"${SETS[setId].name}" ${p.frames.length} kareye uygulandı`);
+  p.frames.forEach((f, i) => console.log(`   ${String(i + 1).padStart(2)}. ${f.template}`));
 };
 
 commands.set = (a) => {
@@ -313,6 +332,10 @@ const help = `
     appshot new <name> [--app "App Name"] [--template text-top] [--bg indigo] [--devices iphone-6.9,ipad-13]
     appshot ls
     appshot info <project>
+
+  \x1b[1mStyle packs\x1b[0m  (önce bunu seç — tüm sete tek seferde tutarlı bir görünüm verir)
+    appshot packs
+    appshot pack <project> panorama-flow
 
   \x1b[1mContent\x1b[0m
     appshot add <project> shot1.png shot2.png [--titles "A|B"]

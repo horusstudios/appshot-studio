@@ -26,6 +26,10 @@ Tipik akış:
 appshot new fluenta --app "Fluenta" --bg indigo
 appshot add fluenta ~/Desktop/shots/*.png
 
+# 1.5) ÖNCE hazır set seç — tek tek şablon atamak yerine tüm sete tutarlı görünüm ver
+appshot packs
+appshot pack fluenta panorama-flow
+
 # 2) metinleri topluca yaz ( | ile ayır, frame sırasına göre dağıtılır )
 appshot set fluenta --frames all \
   --titles "Konuşarak öğren|Maya ile pratik yap|İlerlemeni gör" \
@@ -45,6 +49,22 @@ appshot render fluenta --frames 1-3 --open
 ```
 
 Çıktı: `out/<proje>/<cihaz>/01-baslik.png` — App Store'un istediği tam piksel ölçüsünde.
+
+### Style pack'ler (önce bunu seç)
+
+Bir pack; arkaplanı, tipografiyi, cihaz ayarını **ve her karenin şablonunu** birlikte
+tanımlar (`src/core/sets.js`). `appshot pack <proje> <id>` tüm sete uygular; kare
+sayısı sequence'ten uzunsa sıra başa döner, yani **hiçbir kare yarım kalmaz**.
+Pack uygulandığında kare bazlı görünüm override'ları (`background`/`text`/`device`)
+temizlenir — metinlere dokunulmaz. Sonrasında tek tek kare değiştirilebilir.
+
+`panorama-flow` ve `panorama-tilt` **sürekli** setlerdir: arkaplan ve cihazlar
+kareden kareye devam eder, set tek bir geniş görsel gibi okunur.
+
+Sürekli şablonlar (`pano-flow`, `pano-tilt`, `pano-hero`) `continuous` alanıyla
+işaretlenir; render sırasında `count` kare genişliğinde bir şerit çizilip `index`
+kadar sola kaydırılır. Bu yüzden `renderFrame`'e **index geçmek şart** — geçilmezse
+`project.frames.indexOf(frame)` ile bulunur.
 
 ### Önemli kurallar
 

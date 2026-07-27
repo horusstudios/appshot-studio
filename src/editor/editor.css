@@ -196,6 +196,31 @@ input[type="color"] {
 .tplcard b { display: block; margin-top: 6px; font-size: 12px; }
 .tplcard span { display: block; color: var(--muted); font-size: 11px; line-height: 1.3; }
 
+button.packs {
+  background: linear-gradient(135deg, #6366f1, #a855f7); color: #fff;
+  border-radius: 8px; padding: 7px 14px; font-weight: 600; flex: 0 0 auto;
+}
+button.packs:hover { filter: brightness(1.12); }
+
+.packgal { display: flex; flex-direction: column; gap: 8px; }
+.packcard {
+  display: flex; align-items: center; gap: 14px; padding: 10px;
+  border: 1px solid var(--line); border-radius: 11px; cursor: pointer; background: var(--panel2);
+}
+.packcard:hover { border-color: var(--accent); }
+.packcard.on { border-color: var(--accent); background: rgba(99,102,241,.14); }
+.packcard .strip { display: flex; gap: 3px; flex: 0 0 auto; }
+.packcard .strip.seamless { gap: 0; }
+.packcard .strip.seamless .sh { border-radius: 0; }
+.packcard .strip.seamless .sh:first-child { border-radius: 4px 0 0 4px; }
+.packcard .strip.seamless .sh:last-child { border-radius: 0 4px 4px 0; }
+.packcard .strip .sh { overflow: hidden; border-radius: 4px; background: #000; }
+.packcard .strip .tw { transform-origin: top left; pointer-events: none; }
+.packcard .meta b { display: block; font-size: 13px; margin-bottom: 3px; }
+.packcard .meta span { color: var(--muted); font-size: 12px; line-height: 1.4; }
+.packcard .meta em { display: block; color: #5b6072; font-size: 11px; font-style: normal; margin-top: 4px; }
+.pack-note { color: var(--muted); margin-bottom: 14px; line-height: 1.6; }
+
 .cc-intro { color: var(--muted); margin-bottom: 16px; line-height: 1.6; }
 .cc-intro code { background: var(--panel2); padding: 2px 6px; border-radius: 5px; color: var(--text); }
 .cc-row { border-top: 1px solid var(--line); padding: 14px 0; }

@@ -107,7 +107,7 @@ function deviceGeometry({ bodyW, screenAspect, frameStyle }) {
   return { fs, pad, border, screenW, screenH, bodyH, radius, forehead, chin };
 }
 
-function renderDeviceEl({ cw, ch, spec, deviceCfg, dev, src, index, template }) {
+function renderDeviceEl({ cw, ch, spec, deviceCfg, dev, src, index, template, leftCSS }) {
   const wPct = (spec.w ?? 70) * (deviceCfg.scale ?? 1);
   const bodyW = (wPct / 100) * cw;
   const screenAspect = dev.screen[0] / dev.screen[1];
@@ -188,7 +188,7 @@ function renderDeviceEl({ cw, ch, spec, deviceCfg, dev, src, index, template }) 
 
   return `<div class="ash-device" style="
       width:${bodyW}px;height:${g.bodyH}px;
-      left:${left}%;top:${top}%;
+      left:${leftCSS || `${left}%`};top:${top}%;
       transform:translateX(-50%) rotate(${rotate}deg);
       z-index:${spec.z ?? 1};">
     <div class="ash-body" style="
@@ -284,7 +284,14 @@ function renderTextEl({ cw, ch, frame, text, tpl }) {
  * @param {(p:string)=>string} o.assetURL  resolves an asset path to a URL
  * @returns {{html:string, width:number, height:number}}
  */
-export function renderFrame({ frame, project, deviceId, orientation = 'portrait', assetURL = (p) => p }) {
+export function renderFrame({
+  frame,
+  project,
+  deviceId,
+  orientation = 'portrait',
+  assetURL = (p) => p,
+  index,
+}) {
   const dev = getDevice(deviceId);
   const cw = orientation === 'landscape' ? dev.height : dev.width;
   const ch = orientation === 'landscape' ? dev.width : dev.height;
@@ -303,25 +310,61 @@ export function renderFrame({ frame, project, deviceId, orientation = 'portrait'
     bgResolved.src = assetURL(bgResolved.src);
   }
 
-  const ctx = { cw, ch, screenshotURL: shots[0] || '' };
+  // ---- continuity across the whole set ------------------------------------
+  // A "continuous" template renders a strip that is `count` frames wide and
+  // slides it left by `index` frames, so the background — and optionally the
+  // devices — flow from one screenshot into the next.
+  const frames = (project.frames || []).length ? project.frames : [frame];
+  const i = index ?? Math.max(0, frames.indexOf(frame));
+  const count = Math.max(1, frames.length);
+  const cont = tpl.continuous || null;
+  const stripW = cont ? cw * count : cw;
+  const stripX = cont ? -i * cw : 0;
+
+  const ctx = { cw: stripW, ch, screenshotURL: shots[0] || '' };
   const bgCSS = backgroundCSS(bgResolved, ctx);
-  const ovCSS = overlayCSS(bgResolved, ctx);
+  const ovCSS = overlayCSS(bgResolved, { cw, ch });
   const dCSS = dimCSS(bgResolved);
 
-  const devicesHTML = tpl.devices
-    .map((spec, i) =>
-      renderDeviceEl({
-        cw,
-        ch,
-        spec,
-        deviceCfg,
-        dev,
-        src: shots[i] || shots[shots.length - 1] || '',
-        index: i,
-        template: tpl,
+  const stripStyle = cont
+    ? `left:${stripX}px;width:${stripW}px;right:auto;`
+    : '';
+
+  let devicesHTML;
+  if (cont === 'full') {
+    const spec = tpl.devices[0];
+    devicesHTML = frames
+      .map((f, j) => {
+        const s = resolveScreenshots(f, deviceId).map(assetURL);
+        return renderDeviceEl({
+          cw,
+          ch,
+          spec,
+          deviceCfg,
+          dev,
+          src: s[0] || '',
+          index: j,
+          template: tpl,
+          leftCSS: `${(j + 0.5) * cw + (((spec.x ?? 0) + (deviceCfg.x ?? 0)) / 100) * cw}px`,
+        });
       })
-    )
-    .join('');
+      .join('');
+  } else {
+    devicesHTML = tpl.devices
+      .map((spec, k) =>
+        renderDeviceEl({
+          cw,
+          ch,
+          spec,
+          deviceCfg,
+          dev,
+          src: shots[k] || shots[shots.length - 1] || '',
+          index: k,
+          template: tpl,
+        })
+      )
+      .join('');
+  }
 
   const scrim = tpl.scrim
     ? `<div class="ash-scrim" style="background:linear-gradient(to ${
@@ -330,11 +373,11 @@ export function renderFrame({ frame, project, deviceId, orientation = 'portrait'
     : '';
 
   const html = `<div class="ash-canvas" data-frame="${esc(frame.id ?? '')}" style="width:${cw}px;height:${ch}px;">
-    <div class="ash-bg" style="${bgCSS}"></div>
+    <div class="ash-bg" style="${stripStyle}${bgCSS}"></div>
     ${dCSS ? `<div class="ash-dim" style="${dCSS}"></div>` : ''}
     ${ovCSS ? `<div class="ash-pattern" style="${ovCSS}"></div>` : ''}
     ${scrim}
-    <div class="ash-stage">${devicesHTML}</div>
+    <div class="ash-stage" style="${cont === 'full' ? stripStyle : ''}">${devicesHTML}</div>
     ${renderTextEl({ cw, ch, frame, text, tpl })}
   </div>`;
 
