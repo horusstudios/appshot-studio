@@ -5,6 +5,7 @@ import { getDevice, FRAME_STYLES } from './devices.js';
 import { getTemplate, deviceSpecFor, textSpecFor } from './templates.js';
 import { shapesSVG } from './shapes.js';
 import { localizedFrame } from './l10n.js';
+import { groupRange } from './project.js';
 import { backgroundCSS, overlayCSS, dimCSS, resolveBackground } from './backgrounds.js';
 import { fontStack } from './fonts.js';
 
@@ -419,19 +420,27 @@ export function renderFrame({
     devicesHTML = frames
       .map((fRaw, j) => {
         const f = L(fRaw);
-        if (f.role === 'cta') return ''; // CTA karesinde cihaz yok
+        if (f.role === 'cta') return ''; // no device on a CTA frame
+        // Linked frames share one device straddling the seam between them, so it
+        // is drawn once by the first member and skipped by the rest.
+        const [ga, gb] = groupRange(frames, j);
+        const span = gb - ga + 1;
+        if (span > 1 && j !== ga) return '';
         const spec = deviceSpecFor(tpl, j, f.role);
+        const w = span > 1 ? (spec.w ?? 70) * (1 + (span - 1) * 0.42) : spec.w;
         const s = resolveScreenshots(f, deviceId).map(assetURL);
+        // A spanning device centres on the seam; a single one on its own frame.
+        const centre = span > 1 ? (ga + gb + 1) / 2 : j + 0.5;
         return renderDeviceEl({
           cw,
           ch,
-          spec,
+          spec: { ...spec, w },
           deviceCfg,
           dev,
           src: s[0] || '',
           index: j,
           template: tpl,
-          leftCSS: `${(j + 0.5) * cw + (((spec.x ?? 0) + (deviceCfg.x ?? 0)) / 100) * cw}px`,
+          leftCSS: `${centre * cw + (((spec.x ?? 0) + (deviceCfg.x ?? 0)) / 100) * cw}px`,
         });
       })
       .join('');

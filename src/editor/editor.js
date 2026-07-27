@@ -10,7 +10,7 @@ import { TEMPLATES, TEMPLATE_IDS } from '/src/core/templates.js';
 import { BACKGROUND_PRESETS, BACKGROUND_PRESET_IDS, PATTERNS, resolveBackground } from '/src/core/backgrounds.js';
 import { DEVICES } from '/src/core/devices.js';
 import { FONTS, FONT_IDS, googleFontsHref } from '/src/core/fonts.js';
-import { newFrame, getPath, setPath } from '/src/core/project.js';
+import { newFrame, getPath, setPath, groupMembers, newGroupId } from '/src/core/project.js';
 import { SETS, SET_IDS, applySet } from '/src/core/sets.js';
 import { getLocalized, setLocalized, localeLabel, COMMON_LOCALES } from '/src/core/l10n.js';
 
@@ -141,7 +141,12 @@ function drawGrid() {
             ${state.project.frames
               .map((f, i) => boardCard(f, i, loc, base, seamless))
               .join('')}
-            ${loc === base ? '<button class="gadd" id="gridAdd">+ Add screenshot</button>' : ''}
+            ${loc === base
+              ? `<div class="gaddwrap">
+                   <button class="gadd" id="gridAdd">+ Add screen</button>
+                   <button class="gadd" id="gridAddPair">+ Linked pair</button>
+                 </div>`
+              : ''}
           </div>
         </div>`
       )
@@ -170,6 +175,11 @@ function boardCard(f, i, loc, base, seamless) {
     <div class="gcard${isSel ? ' on' : ''}${all ? ' all' : ''}" data-i="${i}" data-loc="${loc}" style="width:${cardW}px;flex:0 0 ${cardW}px">
       <div class="gshot" style="height:${height * s}px">
         <span class="gidx">${i + 1}</span>
+        ${f.group ? '<span class="glink" title="Linked — shares one screenshot">⛓</span>' : ''}
+        ${loc === base ? `<button class="gdel" data-gdel="${i}" title="Delete">×</button>` : ''}
+        ${resolveScreenshots(f, state.device).length
+          ? ''
+          : `<button class="gdrop" data-gdrop="${i}">Click or drop an image</button>`}
         <span class="gtpl">${TEMPLATES[f.template || state.project.defaults.template].name}</span>
         <div class="tw" style="transform:scale(${s})">${html}</div>
       </div>
@@ -232,9 +242,7 @@ function drawThumbs() {
       `<div class="tw" style="transform:scale(${s})">${html}</div>`;
     div.onclick = (e) => {
       if (e.target.dataset.del !== undefined) {
-        state.project.frames.splice(+e.target.dataset.del, 1);
-        state.sel = Math.max(0, Math.min(state.sel, state.project.frames.length - 1));
-        save(); paint(); buildInspector();
+        deleteFrame(+e.target.dataset.del);
         return;
       }
       if (e.target.dataset.mv) {
@@ -289,7 +297,15 @@ $('#gridHost').addEventListener('input', (e) => {
 
 $('#gridHost').addEventListener('click', (e) => {
   if (justDragged) return;
-  if (e.target.id === 'gridAdd') { pickTarget = 'new'; $('#filePicker').click(); return; }
+  if (e.target.id === 'gridAdd') { addEmptyFrames(1); return; }
+  if (e.target.id === 'gridAddPair') { addEmptyFrames(2, true); return; }
+  if (e.target.dataset.gdel !== undefined) { deleteFrame(+e.target.dataset.gdel); return; }
+  if (e.target.dataset.gdrop !== undefined) {
+    state.sel = +e.target.dataset.gdrop;
+    pickTarget = 'shot';
+    $('#filePicker').click();
+    return;
+  }
   if (e.target.id === 'addLang') { addLanguage(); return; }
   if (e.target.dataset.rmlang) { removeLanguage(e.target.dataset.rmlang); return; }
   const card = e.target.closest('.gcard');
@@ -1176,7 +1192,7 @@ document.querySelectorAll('.scope button').forEach((b) => {
 });
 
 let pickTarget = 'new';
-$('#addFrame').onclick = () => { pickTarget = 'new'; $('#filePicker').click(); };
+$('#addFrame').onclick = () => addEmptyFrames(1);
 
 $('#filePicker').onchange = async (e) => {
   const files = [...e.target.files];
@@ -1204,20 +1220,50 @@ $('#bgPicker').onchange = async (e) => {
   buildInspector();
 };
 
+// Frames start empty with a placeholder; you fill them by clicking or dropping.
+function addEmptyFrames(count = 1, linked = false) {
+  const p = state.project;
+  const group = linked ? newGroupId(p.frames) : null;
+  for (let k = 0; k < count; k++) {
+    const f = newFrame(p.frames.length);
+    if (group) f.group = group;
+    p.frames.push(f);
+  }
+  state.sel = p.frames.length - count;
+  save(); paint(); buildInspector();
+  if (!p.set) openPackGallery();
+  else toast(linked ? 'Linked pair added — drop one image, both fill' : 'Empty frame added — drop an image on it');
+}
+
+// Linked frames are slices of one screenshot, so a drop fills every member.
+function setShotOnFrame(i, path) {
+  const p = state.project;
+  const base = p.locales[0];
+  for (const k of groupMembers(p.frames, i)) {
+    const f = p.frames[k];
+    if (state.locale === base) setScreenshot(f, state.device, path);
+    else {
+      const tmp = { screenshot: (f.l10n?.[state.locale] || {}).screenshot };
+      setScreenshot(tmp, state.device, path);
+      setLocalized(f, state.locale, base, 'screenshot', tmp.screenshot);
+    }
+  }
+}
+
+function deleteFrame(i) {
+  const members = groupMembers(state.project.frames, i);
+  state.project.frames.splice(members[0], members.length);
+  state.sel = Math.max(0, Math.min(state.sel, state.project.frames.length - 1));
+  save(); paint(); buildInspector();
+  if (members.length > 1) toast('Linked pair removed');
+}
+
 async function addShots(files, replaceCurrent) {
   if (!files.length) return;
   for (const [i, file] of files.entries()) {
     const { path } = await api.upload(state.name, file);
     if (i === 0 && replaceCurrent && frame()) {
-      const b = state.project.locales[0];
-      if (state.locale === b) setScreenshot(frame(), state.device, path);
-      else {
-        // Language-specific screenshot: only changes on that language's row.
-        const cur = { ...(frame().l10n?.[state.locale] || {}) };
-        const tmp = { screenshot: cur.screenshot };
-        setScreenshot(tmp, state.device, path);
-        setLocalized(frame(), state.locale, b, 'screenshot', tmp.screenshot);
-      }
+      setShotOnFrame(state.sel, path);
     }
     else {
       state.project.frames.push(newFrame(state.project.frames.length, { screenshot: path }));
@@ -1244,7 +1290,17 @@ const stage = $('#stage');
 );
 document.addEventListener('drop', async (e) => {
   const files = [...(e.dataTransfer?.files || [])].filter((f) => f.type.startsWith('image/'));
-  if (files.length) await addShots(files, false);
+  if (!files.length) return;
+  // Dropping onto a card fills that frame (and its linked partners); dropping
+  // anywhere else appends new frames.
+  const card = e.target.closest?.('.gcard');
+  if (card) {
+    state.sel = +card.dataset.i;
+    state.locale = card.dataset.loc;
+    await addShots([files[0]], true);
+    return;
+  }
+  await addShots(files, false);
 });
 
 // topbar

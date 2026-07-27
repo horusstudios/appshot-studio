@@ -30,6 +30,10 @@ A typical run:
 appshot new my-app --app "My App" --bg indigo
 appshot add my-app ~/Desktop/shots/*.png
 
+#    or lay the set out first and fill the images in later, in the editor
+appshot blank my-app 5
+appshot blank my-app --pair          # two linked frames sharing one screenshot
+
 # 1.5) pick a pack FIRST — one consistent look for the whole set,
 #      instead of assigning templates frame by frame
 appshot packs
@@ -104,6 +108,19 @@ appshot render <project> --locales en,tr
   `out/<project>/<locale>/<device>/` for several. File names come from that
   language's headline.
 
+### Linked frames
+
+Frames carrying the same `group` id are consecutive slices of ONE screenshot: on a
+continuous template their device is drawn once, centred on the seam, so half of it
+falls on each frame. They behave as a unit — setting `--shot` on one fills every
+member, and deleting one deletes them all (`groupRange`/`groupMembers` in
+`src/core/project.js`).
+
+```bash
+appshot blank <project> --pair
+appshot set <project> --frames 3 --shot ~/wide.png   # fills frame 4 too
+```
+
 ### Rules that matter
 
 - With **no** `--frames`, `style` changes the project defaults → every frame is affected.
@@ -125,7 +142,10 @@ appshot editor          # http://localhost:4321
 Left: frame strip · Middle: live preview · Right: inspector.
 The **This frame / All frames** switch at the top decides whether an edit lands on one
 frame or on the whole project (the same idea as `--frames` in the CLI).
-Dropping PNGs on the window creates new frames.
+Dropping PNGs on the window creates new frames; dropping one onto a card fills that
+frame instead. **+ Add screen** adds an empty frame with a placeholder you click or
+drop onto — so you can lay the whole set out before you have the images. **+ Linked
+pair** adds two frames that share one screenshot.
 
 - **Grid / Edit** switch: Grid is the default — the blueprint board — **one row per language**, one
   column per frame. Headline and sub-headline are typed straight under each card. On

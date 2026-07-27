@@ -12,7 +12,7 @@ import {
   projectDir,
   safeName,
 } from '../server/store.js';
-import { newFrame, parseFrameSelector, setPath } from '../core/project.js';
+import { newFrame, parseFrameSelector, setPath, groupMembers, newGroupId } from '../core/project.js';
 import { setScreenshot } from '../core/render.js';
 import { SETS, SET_IDS, applySet } from '../core/sets.js';
 import { setLocalized, baseLocale, localeLabel } from '../core/l10n.js';
@@ -138,6 +138,22 @@ commands.add = (a) => {
   ok(`added ${files.length} frame(s) — ${p.frames.length} total`);
 };
 
+commands.blank = (a) => {
+  const name = a._[0] || die('usage: appshot blank <project> [count] [--pair]');
+  const p = loadProject(name);
+  const n = Math.max(1, num(a._[1], a.flags.pair ? 2 : 1));
+  const group = a.flags.pair ? newGroupId(p.frames) : null;
+  for (let k = 0; k < n; k++) {
+    const f = newFrame(p.frames.length);
+    if (group) f.group = group;
+    p.frames.push(f);
+  }
+  saveProject(name, p);
+  ok(group
+    ? `added a linked pair — one screenshot spans both (${p.frames.length} frames total)`
+    : `added ${n} empty frame(s) — ${p.frames.length} total`);
+};
+
 commands.packs = () => {
   for (const id of SET_IDS) {
     const s = SETS[id];
@@ -189,7 +205,10 @@ commands.set = (a) => {
       const rel = fs.existsSync(path.resolve(src)) && !src.startsWith('assets/')
         ? importImage(name, path.resolve(src))
         : src;
-      setScreenshot(f, typeof a.flags.for === 'string' ? a.flags.for : null, rel, !a.flags.for);
+      // Linked frames are slices of one screenshot, so fill every member.
+      for (const gi of groupMembers(p.frames, fi)) {
+        setScreenshot(p.frames[gi], typeof a.flags.for === 'string' ? a.flags.for : null, rel, !a.flags.for);
+      }
     }
   });
   saveProject(name, p);
@@ -382,6 +401,8 @@ const help = `
     appshot pack <project> panorama-flow
 
   \x1b[1mContent\x1b[0m
+    appshot blank <project> 3            (empty frames; fill them in the editor)
+    appshot blank <project> --pair       (two linked frames sharing one screenshot)
     appshot add <project> shot1.png shot2.png [--titles "A|B"]
     appshot set <project> --frames 1,3 --title "..." --subtitle "..." [--eyebrow "..."] [--template hero] [--bg sunset]
     appshot set <project> --frames all --titles "One|Two|Three"

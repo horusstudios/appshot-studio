@@ -5,6 +5,29 @@ export { L10N_FIELDS, baseLocale, localizedFrame, getLocalized, setLocalized } f
 
 export const PROJECT_VERSION = 1;
 
+// Linked frames. Frames carrying the same `group` id are consecutive slices of
+// ONE screenshot — a device straddling the seam shows half on each. They share a
+// screenshot, and are added and removed together.
+export function groupRange(frames, i) {
+  const g = frames[i] && frames[i].group;
+  if (!g) return [i, i];
+  let a = i;
+  let b = i;
+  while (a > 0 && frames[a - 1].group === g) a--;
+  while (b < frames.length - 1 && frames[b + 1].group === g) b++;
+  return [a, b];
+}
+
+export function groupMembers(frames, i) {
+  const [a, b] = groupRange(frames, i);
+  const out = [];
+  for (let k = a; k <= b; k++) out.push(k);
+  return out;
+}
+
+export const newGroupId = (frames) =>
+  `g${1 + frames.reduce((n, f) => Math.max(n, +String(f.group || '').slice(1) || 0), 0)}`;
+
 export function newProject(name, opts = {}) {
   return {
     version: PROJECT_VERSION,

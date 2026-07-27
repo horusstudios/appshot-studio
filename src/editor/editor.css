@@ -188,6 +188,24 @@ input[type="color"] {
   width: 100%; margin-top: 6px; font-size: 12px; padding: 5px 8px;
 }
 .gcard input.gsub { color: var(--muted); }
+.gaddwrap { display: flex; flex-direction: column; gap: 8px; }
+.glink {
+  position: absolute; top: 6px; left: 50%; transform: translateX(-50%); z-index: 9;
+  background: rgba(99,102,241,.9); border-radius: 5px; padding: 1px 7px; font-size: 11px;
+}
+.gdel {
+  position: absolute; top: 5px; right: 6px; z-index: 10; display: none;
+  background: rgba(0,0,0,.7); border-radius: 5px; width: 20px; height: 20px;
+  font-size: 13px; color: #fff;
+}
+.gcard:hover .gdel { display: block; }
+.gdrop {
+  position: absolute; inset: 8px; z-index: 8; border: 2px dashed rgba(255,255,255,.35);
+  border-radius: 8px; color: rgba(255,255,255,.75); font-size: 11px;
+  background: rgba(0,0,0,.35); padding: 4px;
+}
+.gdrop:hover { border-color: var(--accent); background: rgba(99,102,241,.25); color: #fff; }
+
 .gadd {
   width: 150px; flex: 0 0 150px; height: 230px; border: 1px dashed var(--line);
   border-radius: 10px; color: var(--muted); font-size: 12px; margin-right: 14px;
