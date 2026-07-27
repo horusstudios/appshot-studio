@@ -142,6 +142,11 @@ Dropping PNGs on the window creates new frames.
   image layers and font size for text and emoji — so a layer holds its place at any
   zoom and on every device size. Layers are per frame and shared across languages
   (`frame.layers[]`, see `DEFAULT_LAYER` and `LAYER_TYPES` in `src/core/render.js`).
+- Layers can be copied between frames: **⌘C** copy, **⌘V** paste into the selected
+  frame, **⇧⌘V** paste onto every frame at once (handy for a badge that belongs on
+  the whole set), **⌘D** duplicate in place. A pasted layer keeps its exact position
+  and rotation, so it lands identically on each frame; a duplicate is nudged so it
+  does not hide behind the original.
 - **✳ Claude Code** button: the commands for that project, ready to copy — the short
   version of this file.
 

@@ -23,7 +23,7 @@ document.head.insertAdjacentHTML(
 const $ = (s) => document.querySelector(s);
 const state = {
   name: null, project: null, device: null, sel: 0,
-  scope: 'frame', zoom: 1, view: 'grid', locale: null, layer: 0,
+  scope: 'frame', zoom: 1, view: 'grid', locale: null, layer: 0, clip: null,
 };
 
 const api = {
@@ -368,6 +368,38 @@ const curLayer = () => {
   const ls = frame()?.layers;
   return ls && ls.length ? ls[Math.min(state.layer, ls.length - 1)] : null;
 };
+
+// An in-app clipboard, not the OS one: a layer is a small object, and keeping
+// it here means paste works without clipboard permissions or parsing pasted text.
+function copyLayer() {
+  const l = curLayer();
+  if (!l) return toast('Select a layer first');
+  state.clip = JSON.parse(JSON.stringify(l));
+  buildInspector();
+  toast('Layer copied');
+}
+
+function pasteLayer(intoAll = false) {
+  if (!state.clip) return;
+  const targets = intoAll ? state.project.frames : [frame()];
+  targets.forEach((f) => {
+    if (!f) return;
+    f.layers = f.layers || [];
+    f.layers.push(JSON.parse(JSON.stringify(state.clip)));
+  });
+  const f = frame();
+  if (f && f.layers) state.layer = f.layers.length - 1;
+  save(); paint(); buildInspector(); markSelectedLayer();
+  toast(intoAll ? `Pasted onto ${targets.length} frame(s)` : 'Layer pasted');
+}
+
+function duplicateLayer() {
+  const l = curLayer();
+  if (!l) return;
+  // Nudge the copy so it does not hide exactly behind the original.
+  addLayer({ ...JSON.parse(JSON.stringify(l)), x: (l.x ?? 0) + 4, y: (l.y ?? 50) + 4 });
+  toast('Layer duplicated');
+}
 
 function addLayer(props) {
   const f = frame();
@@ -825,7 +857,8 @@ function buildInspector() {
   const layerPanel = sec(
     'layers',
     'Layers',
-    `<div class="mini">Images, text and emoji stacked on this frame.</div>
+    `<div class="mini">Images, text and emoji stacked on this frame.
+       ⌘C copy · ⌘V paste · ⇧⌘V paste onto every frame · ⌘D duplicate.</div>
      ${layers.length
        ? `<div class="layerlist">${layers
            .map((l, k) => {
@@ -847,6 +880,16 @@ function buildInspector() {
        <button class="ghost" id="addLayerText">+ Text</button>
        <button class="ghost" id="addLayerEmoji">+ Emoji</button>
      </div>
+     ${sel || state.clip
+       ? `<div class="addlayer">
+            ${sel ? `<button class="ghost" id="copyLayer">Copy</button>
+                     <button class="ghost" id="dupLayer">Duplicate</button>` : ''}
+            ${state.clip ? `<button class="ghost" id="pasteLayer">Paste</button>` : ''}
+          </div>
+          ${state.clip
+            ? `<button class="ghost" id="pasteAll">Paste onto all ${state.project.frames.length} frames</button>`
+            : ''}`
+       : ''}
      ${sel
        ? `<div class="mini">Drag it on the canvas. Use the round handle to rotate
             and the square one to resize — hold Shift to snap the angle.</div>` +
@@ -1088,6 +1131,10 @@ $('#panels').addEventListener('click', (e) => {
   if (t.id === 'replaceLayer') { bgPickerTarget = 'layerReplace'; $('#bgPicker').click(); return; }
   if (t.id === 'addLayerText') { addLayer({ type: 'text', text: 'Your text', size: 7 }); return; }
   if (t.id === 'addLayerEmoji') { openEmojiPicker(); return; }
+  if (t.id === 'copyLayer') { copyLayer(); return; }
+  if (t.id === 'dupLayer') { duplicateLayer(); return; }
+  if (t.id === 'pasteLayer') { pasteLayer(false); return; }
+  if (t.id === 'pasteAll') { pasteLayer(true); return; }
   if (t.id === 'pickEmoji') { openEmojiPicker(true); return; }
   if (t.dataset.layerdel !== undefined) {
     frame().layers.splice(+t.dataset.layerdel, 1);
@@ -1311,7 +1358,14 @@ async function loadProjects(select) {
 
 window.addEventListener('resize', drawCanvas);
 window.addEventListener('keydown', (e) => {
-  if (e.target.matches('input,textarea,select')) return;
+  if (e.target.matches?.('input,textarea,select')) return;
+  if (e.metaKey || e.ctrlKey) {
+    const k = e.key.toLowerCase();
+    if (k === 'c' && curLayer()) { e.preventDefault(); copyLayer(); return; }
+    if (k === 'v' && state.clip) { e.preventDefault(); pasteLayer(e.shiftKey); return; }
+    if (k === 'd' && curLayer()) { e.preventDefault(); duplicateLayer(); return; }
+    return;
+  }
   if (e.key === 'ArrowDown' || e.key === 'ArrowRight') {
     state.sel = Math.min(state.sel + 1, state.project.frames.length - 1); paint(); buildInspector();
   }
