@@ -68,6 +68,12 @@ Sol: frame şeridi · Orta: canlı önizleme · Sağ: inspector.
 yoksa tüm projeye mi yazılacağını belirler (CLI'daki `--frames` mantığının aynısı).
 PNG'leri pencereye sürükle-bırak yeni frame açar.
 
+- **Edit / Grid** anahtarı: Grid, tüm kareleri yan yana gösterir; başlık ve alt başlık
+  kartın altından doğrudan yazılır, inspector seçili kareye uygulanır.
+- **Browse all templates visually…** (Template bölümünde): 14 şablonu *o karenin kendi
+  görseliyle* render edip gösterir, tıklayınca uygular.
+- **✳ Claude Code** düğmesi: o projeye özel komut kopyası (bu dosyadaki akışın kısa hali).
+
 ## Dosya yapısı
 
 ```

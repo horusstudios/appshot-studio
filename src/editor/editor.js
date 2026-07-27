@@ -19,7 +19,10 @@ document.head.insertAdjacentHTML(
 );
 
 const $ = (s) => document.querySelector(s);
-const state = { name: null, project: null, device: null, sel: 0, scope: 'frame', zoom: 1 };
+const state = {
+  name: null, project: null, device: null, sel: 0,
+  scope: 'frame', zoom: 1, view: 'edit',
+};
 
 const api = {
   projects: () => fetch('/api/projects').then((r) => r.json()),
@@ -104,8 +107,47 @@ function write(path, value) {
 
 // ---------------------------------------------------------------- painting
 function paint() {
-  drawCanvas();
-  drawThumbs();
+  const grid = state.view === 'grid';
+  $('#gridHost').hidden = !grid;
+  $('.stage-inner').hidden = grid;
+  $('.filmstrip').classList.toggle('collapsed', grid);
+  if (grid) drawGrid();
+  else { drawCanvas(); drawThumbs(); }
+}
+
+// Every frame side by side, editable in place.
+function drawGrid() {
+  const host = $('#gridHost');
+  // Slider drags re-paint constantly — refresh in place so text inputs keep focus.
+  if (host.querySelectorAll('.gcard').length === state.project.frames.length) {
+    state.project.frames.forEach((_, i) => refreshGridCard(i));
+    document
+      .querySelectorAll('.gcard')
+      .forEach((c) => c.classList.toggle('on', +c.dataset.i === state.sel));
+    return;
+  }
+  host.innerHTML =
+    state.project.frames
+      .map((f, i) => {
+        const { html, width, height } = renderFrame({
+          frame: f,
+          project: state.project,
+          deviceId: state.device,
+          orientation: state.project.orientation,
+          assetURL,
+        });
+        const s = 206 / width;
+        return `<div class="gcard${i === state.sel ? ' on' : ''}" data-i="${i}">
+          <div class="gshot" style="height:${height * s}px">
+            <span class="gidx">${i + 1}</span>
+            <span class="gtpl">${TEMPLATES[f.template || state.project.defaults.template].name}</span>
+            <div class="tw" style="transform:scale(${s})">${html}</div>
+          </div>
+          <input type="text" data-gt="${i}" placeholder="Headline" value="${escAttr(f.title)}">
+          <input type="text" class="gsub" data-gs="${i}" placeholder="Sub-headline" value="${escAttr(f.subtitle)}">
+        </div>`;
+      })
+      .join('') + `<button class="gadd" id="gridAdd">+ Add screenshot</button>`;
 }
 
 function drawCanvas() {
@@ -180,6 +222,160 @@ function drawThumbs() {
   });
 }
 
+function refreshGridCard(i) {
+  const card = $(`#gridHost .gcard[data-i="${i}"]`);
+  if (!card) return;
+  const f = state.project.frames[i];
+  const { html, width, height } = renderFrame({
+    frame: f,
+    project: state.project,
+    deviceId: state.device,
+    orientation: state.project.orientation,
+    assetURL,
+  });
+  const s = 206 / width;
+  card.querySelector('.gshot').style.height = height * s + 'px';
+  card.querySelector('.tw').style.transform = `scale(${s})`;
+  card.querySelector('.tw').innerHTML = html;
+  card.querySelector('.gtpl').textContent =
+    TEMPLATES[f.template || state.project.defaults.template].name;
+}
+
+$('#gridHost').addEventListener('input', (e) => {
+  const t = e.target;
+  const i = t.dataset.gt ?? t.dataset.gs;
+  if (i === undefined) return;
+  state.project.frames[+i][t.dataset.gt !== undefined ? 'title' : 'subtitle'] = t.value;
+  save();
+  refreshGridCard(+i);
+});
+
+$('#gridHost').addEventListener('click', (e) => {
+  if (e.target.id === 'gridAdd') { pickTarget = 'new'; $('#filePicker').click(); return; }
+  const card = e.target.closest('.gcard');
+  if (!card) return;
+  if (e.target.tagName === 'INPUT') {
+    state.sel = +card.dataset.i;
+    document.querySelectorAll('.gcard').forEach((c) => c.classList.toggle('on', c === card));
+    buildInspector();
+    return;
+  }
+  state.sel = +card.dataset.i;
+  document.querySelectorAll('.gcard').forEach((c) => c.classList.toggle('on', c === card));
+  buildInspector();
+});
+
+// ---------------------------------------------------------------- modal
+function openModal(title, html) {
+  $('#modalTitle').textContent = title;
+  $('#modalBody').innerHTML = html;
+  $('#modal').hidden = false;
+}
+const closeModal = () => { $('#modal').hidden = true; };
+$('#modalClose').onclick = closeModal;
+$('#modal').onclick = (e) => { if (e.target.id === 'modal') closeModal(); };
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModal(); });
+
+// Visual template gallery — every template rendered with THIS frame's content.
+function openTemplateGallery() {
+  const f = frame();
+  if (!f) return toast('Add a screenshot first');
+  const current = eff('template', 'text-top');
+  const cards = TEMPLATE_IDS.map((id) => {
+    const { html, width, height } = renderFrame({
+      frame: { ...f, template: id },
+      project: state.project,
+      deviceId: state.device,
+      orientation: state.project.orientation,
+      assetURL,
+    });
+    const s = 146 / width;
+    return `<div class="tplcard${id === current ? ' on' : ''}" data-pick="${id}">
+      <div class="tp" style="height:${height * s}px;overflow:hidden">
+        <div class="tw" style="transform:scale(${s})">${html}</div>
+      </div>
+      <b>${TEMPLATES[id].name}</b><span>${TEMPLATES[id].hint}</span>
+    </div>`;
+  }).join('');
+  openModal(
+    `Templates — click to apply to ${state.scope === 'all' ? 'ALL frames' : `frame ${state.sel + 1}`}`,
+    `<div class="tplgal">${cards}</div>`
+  );
+  $('#modalBody').onclick = (e) => {
+    const card = e.target.closest('[data-pick]');
+    if (!card) return;
+    write('template', card.dataset.pick);
+    closeModal();
+    buildInspector();
+  };
+}
+
+// Claude Code cheat sheet, filled in with the current project name.
+function openClaudePanel() {
+  const n = state.name;
+  const rows = [
+    [
+      'Bu projede neler var, göster',
+      `appshot info ${n}`,
+    ],
+    [
+      'Tüm başlıkları şu şekilde değiştir',
+      `appshot set ${n} --frames all \\\n  --titles "Konuşarak öğren|Maya ile pratik yap|İlerlemeni gör" \\\n  --subtitles "Kart değil gerçek sohbet|7/24 yapay zekâ öğretmen|Seri, dakika, seviye"`,
+    ],
+    [
+      '2. kareyi eğik yap, 3. kareye iki telefon koy',
+      `appshot set ${n} --frames 2 --template tilt-right\nappshot set ${n} --frames 3 --template duo`,
+    ],
+    [
+      'Tüm setin arkaplanını ve fontunu değiştir',
+      `appshot style ${n} --bg "linear:160:#6366f1,#ec4899" --font Poppins --title-size 6.3 --pattern dots`,
+    ],
+    [
+      'Yeni screenshot’ları ekle',
+      `appshot add ${n} ~/Desktop/shots/*.png`,
+    ],
+    [
+      'iPad için ayrı görsel kullan',
+      `appshot set ${n} --frames 1 --shot ~/Desktop/ipad-home.png --for ipad-13`,
+    ],
+    [
+      'Hepsini yeniden export et',
+      `appshot render ${n} --open`,
+    ],
+    [
+      'Sadece iPhone’u, ilk 3 kareyi ver',
+      `appshot render ${n} --devices iphone-6.9 --frames 1-3`,
+    ],
+  ];
+
+  const body =
+    `<div class="cc-intro">
+       Claude Code'a <code>~/appshot-studio</code> klasöründe olduğunu söyle — oradaki
+       <code>CLAUDE.md</code> dosyasını okuyup bu komutları kendisi çalıştırır.
+       Yani aşağıdaki komutları ezberlemene gerek yok, <b>sol sütundaki gibi konuşman yeterli</b>.
+       Komutları kendin de çalıştırmak istersen sağdaki kopyala düğmesini kullan.
+     </div>
+     <div class="cc-cmd"><pre>cd ~/appshot-studio &amp;&amp; claude</pre><button data-copy="cd ~/appshot-studio &amp;&amp; claude">Copy</button></div>` +
+    rows
+      .map(
+        ([say, cmd]) => `<div class="cc-row">
+          <div class="say">💬 <b>“${say}”</b></div>
+          <div class="cc-cmd"><pre>${cmd.replace(/&/g, '&amp;').replace(/</g, '&lt;')}</pre>
+            <button data-copy="${escAttr(cmd)}">Copy</button></div>
+        </div>`
+      )
+      .join('');
+
+  openModal('Claude Code ile kullan', body);
+  $('#modalBody').onclick = async (e) => {
+    const btn = e.target.closest('[data-copy]');
+    if (!btn) return;
+    await navigator.clipboard.writeText(btn.dataset.copy);
+    btn.textContent = 'Copied';
+    setTimeout(() => (btn.textContent = 'Copy'), 1200);
+  };
+}
+
 // ---------------------------------------------------------------- inspector
 const rowRange = (label, path, min, max, step, fallback) => {
   const v = eff(path, fallback);
@@ -236,7 +432,8 @@ function buildInspector() {
       (id) =>
         `<button data-tpl="${id}" class="${eff('template', 'text-top') === id ? 'on' : ''}" title="${TEMPLATES[id].hint}">${TEMPLATES[id].name}</button>`
     ).join('')}</div>
-     <div class="mini">${TEMPLATES[eff('template', 'text-top')].hint}</div>`
+     <div class="mini">${TEMPLATES[eff('template', 'text-top')].hint}</div>
+     <button class="ghost" id="browseTpl">Browse all templates visually…</button>`
   );
 
   const text = sec(
@@ -446,6 +643,7 @@ $('#panels').addEventListener('click', (e) => {
   if (t.dataset.tpl) { write('template', t.dataset.tpl); buildInspector(); return; }
   if (t.dataset.bgp) { write('background', t.dataset.bgp); buildInspector(); return; }
   if (t.dataset.reset) { write(t.dataset.reset, null); buildInspector(); return; }
+  if (t.id === 'browseTpl') { openTemplateGallery(); return; }
   if (t.id === 'pickShot') { pickTarget = 'shot'; $('#filePicker').click(); return; }
   if (t.id === 'shotAll') {
     const cur = resolveScreenshots(frame(), state.device)[0];
@@ -516,6 +714,14 @@ document.addEventListener('drop', async (e) => {
 
 // topbar
 $('#zoom').oninput = (e) => { state.zoom = +e.target.value / 100; drawCanvas(); };
+$('#claudeBtn').onclick = openClaudePanel;
+document.querySelectorAll('#viewTabs button').forEach((b) => {
+  b.onclick = () => {
+    document.querySelectorAll('#viewTabs button').forEach((x) => x.classList.toggle('on', x === b));
+    state.view = b.dataset.view;
+    paint();
+  };
+});
 $('#revealBtn').onclick = () => api.reveal(state.name);
 $('#renderBtn').onclick = doExport;
 

@@ -10,6 +10,7 @@
   --radius: 10px;
 }
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
 html, body { height: 100%; margin: 0; }
 body {
   background: var(--bg);
@@ -25,7 +26,8 @@ button { cursor: pointer; border: none; background: none; }
   height: 52px; flex: 0 0 52px; display: flex; align-items: center; gap: 14px;
   padding: 0 14px; background: var(--panel); border-bottom: 1px solid var(--line);
 }
-.brand { font-weight: 800; letter-spacing: -.02em; }
+.topbar button, .topbar select { white-space: nowrap; }
+.brand { font-weight: 800; letter-spacing: -.02em; flex: 0 0 auto; }
 .brand span { color: var(--accent); font-weight: 500; margin-left: 3px; }
 .spacer { flex: 1; }
 .group { display: flex; align-items: center; gap: 8px; }
@@ -48,12 +50,13 @@ button.primary:disabled { opacity: .5; cursor: default; }
 .zoom input { width: 90px; accent-color: var(--accent); }
 
 /* ---------- layout ---------- */
-main { flex: 1; display: grid; grid-template-columns: 170px 1fr 320px; min-height: 0; }
+main { flex: 1; display: grid; grid-template-columns: auto 1fr 320px; min-height: 0; }
 
 .filmstrip {
-  background: var(--panel); border-right: 1px solid var(--line);
+  width: 170px; background: var(--panel); border-right: 1px solid var(--line);
   overflow-y: auto; padding: 10px; display: flex; flex-direction: column; gap: 8px;
 }
+.filmstrip.collapsed { width: 0; padding: 0; border-right: 0; overflow: hidden; }
 .thumb {
   position: relative; border: 2px solid transparent; border-radius: var(--radius);
   overflow: hidden; background: #000; cursor: pointer; flex: 0 0 auto;
@@ -133,6 +136,83 @@ input[type="color"] {
 .chk input { accent-color: var(--accent); }
 .mini { font-size: 11px; color: #5b6072; }
 .stops { display: flex; gap: 6px; align-items: center; }
+
+/* ---------- grid view ---------- */
+.grid {
+  align-content: flex-start; align-items: flex-start; gap: 18px;
+  display: flex; flex-wrap: wrap; padding: 20px; width: 100%; height: 100%;
+  overflow-y: auto;
+}
+.gcard { width: 210px; flex: 0 0 210px; }
+.gcard .gshot {
+  position: relative; border: 2px solid transparent; border-radius: 10px;
+  overflow: hidden; background: #000; cursor: pointer;
+}
+.gcard.on .gshot { border-color: var(--accent); }
+.gcard .gshot .tw { transform-origin: top left; pointer-events: none; }
+.gcard .gidx {
+  position: absolute; top: 6px; left: 7px; z-index: 9; background: rgba(0,0,0,.6);
+  border-radius: 5px; padding: 1px 7px; font-size: 11px; font-weight: 700;
+}
+.gcard .gtpl {
+  position: absolute; bottom: 6px; left: 7px; right: 7px; z-index: 9; text-align: center;
+  background: rgba(0,0,0,.6); border-radius: 5px; padding: 2px; font-size: 10px; color: #c9cde0;
+}
+.gcard input {
+  width: 100%; margin-top: 6px; font-size: 12px; padding: 5px 8px;
+}
+.gcard input.gsub { color: var(--muted); }
+.gadd {
+  width: 210px; flex: 0 0 210px; height: 300px; border: 1px dashed var(--line);
+  border-radius: 10px; color: var(--muted); font-size: 13px;
+}
+.gadd:hover { border-color: var(--accent); color: var(--text); }
+
+/* ---------- modal ---------- */
+.modal {
+  position: fixed; inset: 0; z-index: 200; background: rgba(0,0,0,.6);
+  display: grid; place-items: center; padding: 30px; backdrop-filter: blur(3px);
+}
+.modal[hidden] { display: none; }
+.modal-box {
+  background: var(--panel); border: 1px solid var(--line); border-radius: 14px;
+  width: min(1000px, 100%); max-height: 100%; display: flex; flex-direction: column; overflow: hidden;
+}
+.modal-box > header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 18px; border-bottom: 1px solid var(--line);
+}
+.modal-box h2 { margin: 0; font-size: 15px; }
+#modalClose { font-size: 22px; color: var(--muted); line-height: 1; }
+#modalBody { padding: 18px; overflow-y: auto; }
+
+.tplgal { display: flex; flex-wrap: wrap; gap: 14px; }
+.tplcard { width: 150px; cursor: pointer; }
+.tplcard .tp {
+  border: 2px solid transparent; border-radius: 9px; overflow: hidden; background: #000;
+}
+.tplcard.on .tp, .tplcard:hover .tp { border-color: var(--accent); }
+.tplcard .tw { transform-origin: top left; pointer-events: none; }
+.tplcard b { display: block; margin-top: 6px; font-size: 12px; }
+.tplcard span { display: block; color: var(--muted); font-size: 11px; line-height: 1.3; }
+
+.cc-intro { color: var(--muted); margin-bottom: 16px; line-height: 1.6; }
+.cc-intro code { background: var(--panel2); padding: 2px 6px; border-radius: 5px; color: var(--text); }
+.cc-row { border-top: 1px solid var(--line); padding: 14px 0; }
+.cc-row .say { margin-bottom: 8px; }
+.cc-row .say b { color: var(--accent2); font-weight: 600; }
+.cc-cmd {
+  display: flex; align-items: flex-start; gap: 10px; background: #0a0b10;
+  border: 1px solid var(--line); border-radius: 9px; padding: 10px 12px;
+}
+.cc-cmd pre {
+  margin: 0; flex: 1; font: 12px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace;
+  white-space: pre-wrap; word-break: break-word; color: #d7dcf0;
+}
+.cc-cmd button { flex: 0 0 auto; border: 1px solid var(--line); border-radius: 7px; padding: 4px 10px; font-size: 11px; color: var(--muted); }
+.cc-cmd button:hover { color: var(--text); border-color: var(--accent); }
+button.claude { border-color: #5b4bd6; color: #c9c3ff; }
+button.claude:hover { background: rgba(99,102,241,.18); }
 
 .toast {
   position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%) translateY(20px);

@@ -18,10 +18,16 @@
 
     <div id="deviceTabs" class="tabs"></div>
 
+    <div class="tabs" id="viewTabs">
+      <button data-view="edit" class="on">Edit</button>
+      <button data-view="grid">Grid</button>
+    </div>
+
     <div class="spacer"></div>
 
     <div class="group">
       <label class="zoom">Zoom<input id="zoom" type="range" min="20" max="140" value="100"></label>
+      <button id="claudeBtn" class="ghost claude">✳ Claude Code</button>
       <button id="revealBtn" class="ghost">Folder</button>
       <button id="renderBtn" class="primary">Export all</button>
     </div>
@@ -36,6 +42,7 @@
 
     <section class="stage" id="stage">
       <div class="stage-inner"><div id="canvasHost"></div></div>
+      <div id="gridHost" class="grid" hidden></div>
       <div id="dropHint" class="drophint">Drop screenshots here</div>
     </section>
 
@@ -47,6 +54,13 @@
       <div id="panels"></div>
     </aside>
   </main>
+
+  <div id="modal" class="modal" hidden>
+    <div class="modal-box">
+      <header><h2 id="modalTitle"></h2><button id="modalClose">×</button></header>
+      <div id="modalBody"></div>
+    </div>
+  </div>
 
   <div id="toast" class="toast"></div>
   <input type="file" id="filePicker" accept="image/*" multiple hidden>
