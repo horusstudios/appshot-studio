@@ -79,6 +79,22 @@ işaretlenir; render sırasında `count` kare genişliğinde bir şerit çizilip
 kadar sola kaydırılır. Bu yüzden `renderFrame`'e **index geçmek şart** — geçilmezse
 `project.frames.indexOf(frame)` ile bulunur.
 
+### Lokalizasyon
+
+```bash
+appshot lang <proje>                # dilleri listele (ilki ana dil)
+appshot lang <proje> add tr
+appshot set <proje> --lang tr --frames all --titles "Bir|İki|Üç"
+appshot render <proje> --locales en,tr
+```
+
+- Sadece **metin ve ekran görüntüsü** dile göre değişir (`L10N_FIELDS`, `src/core/l10n.js`).
+  Şablon, arkaplan, cihaz ayarı tüm dillerde ortaktır — düzeni bir kez kurarsın.
+- Çeviriler `frame.l10n[dil]` altında durur; boş bırakılan alan ana dile düşer.
+- `--lang` verilmezse `set` ana dile yazar.
+- Export: tek dilde `out/<proje>/<cihaz>/`, çok dilde `out/<proje>/<dil>/<cihaz>/`.
+  Dosya adları o dilin başlığından türer.
+
 ### Önemli kurallar
 
 - `--frames` **verilmezse** `style` komutu proje varsayılanlarını değiştirir → her frame etkilenir.
@@ -101,8 +117,10 @@ Sol: frame şeridi · Orta: canlı önizleme · Sağ: inspector.
 yoksa tüm projeye mi yazılacağını belirler (CLI'daki `--frames` mantığının aynısı).
 PNG'leri pencereye sürükle-bırak yeni frame açar.
 
-- **Edit / Grid** anahtarı: Grid, tüm kareleri yan yana gösterir; başlık ve alt başlık
-  kartın altından doğrudan yazılır, inspector seçili kareye uygulanır.
+- **Edit / Grid** anahtarı: Grid, blueprint board'dur — **her dil bir satır**, her kare
+  bir sütun. Başlık/alt başlık kartın altından doğrudan yazılır. Çeviri satırlarında
+  ana dildeki metin placeholder olarak görünür, boş bırakılan alan ana dile düşer.
+  Satır sonundaki **+ Dil ekle** yeni bir dil satırı açar.
 - **Browse all templates visually…** (Template bölümünde): 14 şablonu *o karenin kendi
   görseliyle* render edip gösterir, tıklayınca uygular.
 - **✳ Claude Code** düğmesi: o projeye özel komut kopyası (bu dosyadaki akışın kısa hali).

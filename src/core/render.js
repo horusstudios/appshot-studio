@@ -4,6 +4,7 @@
 import { getDevice, FRAME_STYLES } from './devices.js';
 import { getTemplate, deviceSpecFor, textSpecFor } from './templates.js';
 import { shapesSVG } from './shapes.js';
+import { localizedFrame } from './l10n.js';
 import { backgroundCSS, overlayCSS, dimCSS, resolveBackground } from './backgrounds.js';
 import { fontStack } from './fonts.js';
 
@@ -314,8 +315,13 @@ export function renderFrame({
   orientation = 'portrait',
   assetURL = (p) => p,
   index,
+  locale,
 }) {
   const dev = getDevice(deviceId);
+  // Metin ve (varsa) ekran görüntüsü dile göre çözülür; düzen tüm dillerde ortak.
+  const base = (project.locales && project.locales[0]) || 'en';
+  const L = (fr) => localizedFrame(fr, locale, base);
+  frame = L(frame);
   const cw = orientation === 'landscape' ? dev.height : dev.width;
   const ch = orientation === 'landscape' ? dev.width : dev.height;
 
@@ -362,7 +368,8 @@ export function renderFrame({
   let devicesHTML;
   if (cont === 'full') {
     devicesHTML = frames
-      .map((f, j) => {
+      .map((fRaw, j) => {
+        const f = L(fRaw);
         if (f.role === 'cta') return ''; // CTA karesinde cihaz yok
         const spec = deviceSpecFor(tpl, j, f.role);
         const s = resolveScreenshots(f, deviceId).map(assetURL);

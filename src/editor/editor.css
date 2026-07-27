@@ -137,18 +137,39 @@ input[type="color"] {
 .mini { font-size: 11px; color: #5b6072; }
 .stops { display: flex; gap: 6px; align-items: center; }
 
-/* ---------- grid view ---------- */
+/* ---------- board (blueprint) view ---------- */
 .grid {
-  align-content: flex-start; align-items: flex-start; gap: 18px;
-  display: flex; flex-wrap: wrap; padding: 20px; width: 100%; height: 100%;
-  overflow-y: auto;
+  display: block; padding: 0; width: 100%; height: 100%; overflow: auto;
 }
-.gcard { width: 210px; flex: 0 0 210px; }
+.brow { display: flex; align-items: flex-start; border-bottom: 1px solid var(--line); }
+.bhead {
+  position: sticky; left: 0; z-index: 12; flex: 0 0 128px; width: 128px;
+  padding: 16px 12px; background: var(--panel); border-right: 1px solid var(--line);
+  align-self: stretch;
+}
+.bhead b { display: block; font-size: 13px; text-transform: uppercase; letter-spacing: .06em; }
+.bhead span { display: block; color: var(--muted); font-size: 11px; margin-top: 3px; }
+.bhead .base { color: var(--accent2); }
+.bhead button {
+  margin-top: 9px; font-size: 11px; color: var(--muted);
+  border: 1px solid var(--line); border-radius: 6px; padding: 2px 8px;
+}
+.bhead button:hover { color: #fda4af; border-color: #fda4af; }
+.bframes { display: flex; padding: 14px 0 14px 14px; }
+.bcell { flex: 0 0 auto; margin-right: 14px; }
+.bcell.seam { margin-right: 0; }
+.gcard { width: 150px; flex: 0 0 150px; }
 .gcard .gshot {
-  position: relative; border: 2px solid transparent; border-radius: 10px;
+  position: relative; border: 2px solid transparent; border-radius: 8px;
   overflow: hidden; background: #000; cursor: pointer;
 }
+.bcell.seam .gcard .gshot { border-radius: 0; }
 .gcard.on .gshot { border-color: var(--accent); }
+.addlang {
+  display: block; margin: 14px; padding: 10px 16px; border: 1px dashed var(--line);
+  border-radius: 9px; color: var(--muted); font-size: 12px; position: sticky; left: 14px;
+}
+.addlang:hover { border-color: var(--accent); color: var(--text); }
 .gcard .gshot .tw { transform-origin: top left; pointer-events: none; }
 .gcard .gidx {
   position: absolute; top: 6px; left: 7px; z-index: 9; background: rgba(0,0,0,.6);
@@ -163,8 +184,8 @@ input[type="color"] {
 }
 .gcard input.gsub { color: var(--muted); }
 .gadd {
-  width: 210px; flex: 0 0 210px; height: 300px; border: 1px dashed var(--line);
-  border-radius: 10px; color: var(--muted); font-size: 13px;
+  width: 150px; flex: 0 0 150px; height: 230px; border: 1px dashed var(--line);
+  border-radius: 10px; color: var(--muted); font-size: 12px; margin-right: 14px;
 }
 .gadd:hover { border-color: var(--accent); color: var(--text); }
 
@@ -202,14 +223,15 @@ button.packs {
 }
 button.packs:hover { filter: brightness(1.12); }
 
-.packgal { display: flex; flex-direction: column; gap: 8px; }
+.packgal { display: grid; grid-template-columns: repeat(auto-fill, minmax(196px, 1fr)); gap: 14px; }
 .packcard {
-  display: flex; align-items: center; gap: 14px; padding: 10px;
-  border: 1px solid var(--line); border-radius: 11px; cursor: pointer; background: var(--panel2);
+  display: block; padding: 8px; border: 1px solid var(--line); border-radius: 12px;
+  cursor: pointer; background: var(--panel2); transition: border-color .12s, transform .12s;
 }
-.packcard:hover { border-color: var(--accent); }
-.packcard.on { border-color: var(--accent); background: rgba(99,102,241,.14); }
-.packcard .strip { display: flex; gap: 3px; flex: 0 0 auto; }
+.packcard:hover { border-color: var(--accent); transform: translateY(-2px); }
+.packcard.on { border-color: var(--accent); background: rgba(99,102,241,.16); }
+.packcard .meta b { margin-top: 9px; font-size: 12.5px; text-align: center; }
+.packcard .strip { display: flex; gap: 3px; justify-content: center; }
 .packcard .strip.seamless { gap: 0; }
 .packcard .strip.seamless .sh { border-radius: 0; }
 .packcard .strip.seamless .sh:first-child { border-radius: 4px 0 0 4px; }

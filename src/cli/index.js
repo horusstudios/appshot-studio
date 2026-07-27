@@ -15,6 +15,7 @@ import {
 import { newFrame, parseFrameSelector, setPath } from '../core/project.js';
 import { setScreenshot } from '../core/render.js';
 import { SETS, SET_IDS, applySet } from '../core/sets.js';
+import { setLocalized, baseLocale, localeLabel } from '../core/l10n.js';
 import { TEMPLATES, TEMPLATE_IDS } from '../core/templates.js';
 import { BACKGROUND_PRESETS, BACKGROUND_PRESET_IDS, PATTERNS } from '../core/backgrounds.js';
 import { DEVICES, DEVICE_IDS } from '../core/devices.js';
@@ -164,18 +165,23 @@ commands.set = (a) => {
   const titles = typeof a.flags.titles === 'string' ? a.flags.titles.split('|') : null;
   const subtitles = typeof a.flags.subtitles === 'string' ? a.flags.subtitles.split('|') : null;
 
+  const base = baseLocale(p);
+  const lang = typeof a.flags.lang === 'string' ? a.flags.lang : base;
+  if (!p.locales.includes(lang)) die(`"${lang}" bu projede yok — appshot lang ${name} add ${lang}`);
+  const put = (f, field, v) => setLocalized(f, lang, base, field, v);
+
   idx.forEach((fi, k) => {
     const f = p.frames[fi];
-    if (titles) f.title = (titles[k] ?? f.title).trim();
-    else if (typeof a.flags.title === 'string') f.title = a.flags.title;
-    if (subtitles) f.subtitle = (subtitles[k] ?? f.subtitle).trim();
-    else if (typeof a.flags.subtitle === 'string') f.subtitle = a.flags.subtitle;
-    if (typeof a.flags.eyebrow === 'string') f.eyebrow = a.flags.eyebrow;
+    if (titles) put(f, 'title', (titles[k] ?? '').trim());
+    else if (typeof a.flags.title === 'string') put(f, 'title', a.flags.title);
+    if (subtitles) put(f, 'subtitle', (subtitles[k] ?? '').trim());
+    else if (typeof a.flags.subtitle === 'string') put(f, 'subtitle', a.flags.subtitle);
+    if (typeof a.flags.eyebrow === 'string') put(f, 'eyebrow', a.flags.eyebrow);
     if (typeof a.flags.role === 'string') {
       if (a.flags.role === 'feature') delete f.role;
       else f.role = a.flags.role;
     }
-    if (typeof a.flags.cta === 'string') { f.cta = a.flags.cta; f.role = 'cta'; }
+    if (typeof a.flags.cta === 'string') { put(f, 'cta', a.flags.cta); f.role = 'cta'; }
     if (typeof a.flags.template === 'string') f.template = a.flags.template;
     if (a.flags.bg) f.background = parseBackground(a.flags.bg);
     if (typeof a.flags.shot === 'string') {
@@ -243,6 +249,29 @@ commands.style = (a) => {
   ok(scope ? `styled frame(s) ${scope.map((i) => i + 1).join(', ')}` : 'styled project defaults');
 };
 
+commands.lang = (a) => {
+  const name = a._[0] || die('usage: appshot lang <project> [add|rm] <code>');
+  const p = loadProject(name);
+  const action = a._[1];
+  if (!action || action === 'ls') {
+    p.locales.forEach((l, i) =>
+      console.log(`  ${l.padEnd(10)} ${localeLabel(l)}${i === 0 ? '   (ana dil)' : ''}`)
+    );
+    return;
+  }
+  const code = a._[2] || die('give a locale code, e.g. tr, de, ja');
+  if (action === 'add') {
+    if (p.locales.includes(code)) die(`"${code}" zaten var`);
+    p.locales.push(code);
+  } else if (action === 'rm') {
+    if (p.locales[0] === code) die('ana dil silinemez');
+    p.locales = p.locales.filter((l) => l !== code);
+    p.frames.forEach((f) => { if (f.l10n) delete f.l10n[code]; });
+  } else die('action must be add, rm or ls');
+  saveProject(name, p);
+  ok(`diller: ${p.locales.join(', ')}`);
+};
+
 commands.icon = (a) => {
   const name = a._[0] || die('usage: appshot icon <project> <icon.png>');
   const src = a._[1] || die('give an icon image path');
@@ -279,6 +308,7 @@ commands.render = async (a) => {
   const t0 = Date.now();
   const res = await renderProject(name, {
     devices: list(a.flags.devices),
+    locales: list(a.flags.locales) || (typeof a.flags.lang === 'string' ? [a.flags.lang] : null),
     out: typeof a.flags.out === 'string' ? a.flags.out : null,
     frames: typeof a.flags.frames === 'string' ? a.flags.frames : null,
     format: a.flags.format,
@@ -360,6 +390,12 @@ const help = `
     appshot set <project> --frames 8 --cta "Ücretsiz indir"   (son kare: CTA butonu)
     appshot icon <project> icon.png
     appshot order <project> 3,1,2
+
+  [1mLocalization[0m
+    appshot lang <project>                     (dilleri listele)
+    appshot lang <project> add tr
+    appshot set <project> --lang tr --frames all --titles "Bir|İki|Üç"
+    appshot render <project> --locales en,tr   (out/<proje>/<dil>/<cihaz>/…)
     appshot rm <project> --frames 4
 
   \x1b[1mStyling\x1b[0m  (no --frames = edit project defaults, applies to every frame)

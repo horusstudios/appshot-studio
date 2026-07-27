@@ -1,6 +1,7 @@
 // Project schema helpers. Browser-safe — no fs here (see server/store.js).
 
 import { DEFAULT_TEXT, DEFAULT_DEVICE } from './render.js';
+export { L10N_FIELDS, baseLocale, localizedFrame, getLocalized, setLocalized } from './l10n.js';
 
 export const PROJECT_VERSION = 1;
 
@@ -10,6 +11,7 @@ export function newProject(name, opts = {}) {
     name,
     app: opts.app || name,
     devices: opts.devices || ['iphone-6.9', 'ipad-13'],
+    locales: opts.locales || ['en'],
     orientation: 'portrait',
     defaults: {
       template: opts.template || 'text-top',
@@ -44,6 +46,7 @@ export function normalizeProject(p) {
   };
   out.frames = (p.frames || []).map((f, i) => ({ ...newFrame(i), ...f }));
   if (!out.devices || !out.devices.length) out.devices = ['iphone-6.9', 'ipad-13'];
+  if (!out.locales || !out.locales.length) out.locales = ['en'];
   return out;
 }
 

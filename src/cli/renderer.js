@@ -8,6 +8,7 @@ import { getDevice } from '../core/devices.js';
 import { ROOT, projectDir, loadProject } from '../server/store.js';
 import { startServer } from '../server/index.js';
 import { parseFrameSelector } from '../core/project.js';
+import { localizedFrame, baseLocale } from '../core/l10n.js';
 
 // Find a Chromium/Chrome binary already on this machine.
 export function findChromium() {
@@ -50,9 +51,9 @@ export function findChromium() {
   return found;
 }
 
-function pageHTML({ project, deviceId, frames, orientation, offline }) {
+function pageHTML({ project, deviceId, frames, orientation, offline, locale }) {
   const bodies = frames
-    .map((f) => renderFrame({ frame: f, project, deviceId, orientation }).html)
+    .map((f) => renderFrame({ frame: f, project, deviceId, orientation, locale }).html)
     .join('\n');
   return `<!doctype html>
 <html><head><meta charset="utf-8">
@@ -98,14 +99,22 @@ export async function renderProject(name, opts = {}) {
     args: ['--force-color-profile=srgb', '--font-render-hinting=none', '--disable-lcd-text'],
   });
 
+  const locales = opts.locales && opts.locales.length
+    ? opts.locales
+    : project.locales && project.locales.length
+    ? project.locales
+    : [null];
+  const multiLocale = locales.length > 1;
+
   const written = [];
   try {
+    for (const locale of locales) {
     for (const deviceId of devices) {
       const dev = getDevice(deviceId);
       const w = orientation === 'landscape' ? dev.height : dev.width;
       const h = orientation === 'landscape' ? dev.width : dev.height;
 
-      const html = pageHTML({ project, deviceId, frames, orientation, offline: opts.offline });
+      const html = pageHTML({ project, deviceId, frames, orientation, offline: opts.offline, locale });
       const htmlPath = path.join(projectDir(name), `.render-${deviceId}.html`);
       fs.writeFileSync(htmlPath, html);
 
@@ -130,12 +139,15 @@ export async function renderProject(name, opts = {}) {
       });
       await page.waitForTimeout(opts.settle ?? 250);
 
-      const outDir = path.join(outRoot, deviceId);
+      // Tek dilli projelerde yol değişmesin diye dil klasörü sadece çok dilde açılır.
+      const outDir = multiLocale
+        ? path.join(outRoot, locale, deviceId)
+        : path.join(outRoot, deviceId);
       fs.mkdirSync(outDir, { recursive: true });
 
       const handles = await page.$$('.ash-canvas');
       for (let i = 0; i < handles.length; i++) {
-        const frame = frames[i];
+        const frame = localizedFrame(frames[i], locale, baseLocale(project));
         const n = String(picks[i] + 1).padStart(2, '0');
         const label = slug(frame.title) || `frame-${n}`;
         const file = path.join(outDir, `${n}-${label}.${format === 'jpeg' ? 'jpg' : 'png'}`);
@@ -161,6 +173,7 @@ export async function renderProject(name, opts = {}) {
           );
         }
       }
+    }
     }
   } finally {
     await browser.close();

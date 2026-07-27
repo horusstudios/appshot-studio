@@ -12,6 +12,7 @@ import { DEVICES } from '/src/core/devices.js';
 import { FONTS, FONT_IDS, googleFontsHref } from '/src/core/fonts.js';
 import { newFrame, getPath, setPath } from '/src/core/project.js';
 import { SETS, SET_IDS, applySet } from '/src/core/sets.js';
+import { getLocalized, setLocalized, localeLabel, COMMON_LOCALES } from '/src/core/l10n.js';
 
 // ---------------------------------------------------------------- boot
 document.head.insertAdjacentHTML(
@@ -22,7 +23,7 @@ document.head.insertAdjacentHTML(
 const $ = (s) => document.querySelector(s);
 const state = {
   name: null, project: null, device: null, sel: 0,
-  scope: 'frame', zoom: 1, view: 'edit',
+  scope: 'frame', zoom: 1, view: 'edit', locale: null,
 };
 
 const api = {
@@ -116,40 +117,63 @@ function paint() {
   else { drawCanvas(); drawThumbs(); }
 }
 
-// Every frame side by side, editable in place.
+// Blueprint board: her dil bir satır, her kare bir sütun.
 function drawGrid() {
   const host = $('#gridHost');
-  // Slider drags re-paint constantly — refresh in place so text inputs keep focus.
-  if (host.querySelectorAll('.gcard').length === state.project.frames.length) {
-    state.project.frames.forEach((_, i) => refreshGridCard(i));
-    document
-      .querySelectorAll('.gcard')
-      .forEach((c) => c.classList.toggle('on', +c.dataset.i === state.sel));
-    return;
-  }
+  const base = state.project.locales[0];
+  const seamless = state.project.frames.some(
+    (f) => TEMPLATES[f.template || state.project.defaults.template].continuous
+  );
+
   host.innerHTML =
-    state.project.frames
-      .map((f, i) => {
-        const { html, width, height } = renderFrame({
-          frame: f,
-          project: state.project,
-          deviceId: state.device,
-          orientation: state.project.orientation,
-          assetURL,
-          index: i,
-        });
-        const s = 206 / width;
-        return `<div class="gcard${i === state.sel ? ' on' : ''}" data-i="${i}">
-          <div class="gshot" style="height:${height * s}px">
-            <span class="gidx">${i + 1}</span>
-            <span class="gtpl">${TEMPLATES[f.template || state.project.defaults.template].name}</span>
-            <div class="tw" style="transform:scale(${s})">${html}</div>
+    state.project.locales
+      .map(
+        (loc) => `<div class="brow" data-loc="${loc}">
+          <div class="bhead">
+            <b>${loc}</b>
+            <span class="${loc === base ? 'base' : ''}">${
+              loc === base ? 'ana dil' : localeLabel(loc)
+            }</span>
+            ${loc === base ? '' : `<button data-rmlang="${loc}">kaldır</button>`}
           </div>
-          <input type="text" data-gt="${i}" placeholder="Headline" value="${escAttr(f.title)}">
-          <input type="text" class="gsub" data-gs="${i}" placeholder="Sub-headline" value="${escAttr(f.subtitle)}">
-        </div>`;
-      })
-      .join('') + `<button class="gadd" id="gridAdd">+ Add screenshot</button>`;
+          <div class="bframes">
+            ${state.project.frames
+              .map((f, i) => boardCard(f, i, loc, base, seamless))
+              .join('')}
+            ${loc === base ? '<button class="gadd" id="gridAdd">+ Ekran ekle</button>' : ''}
+          </div>
+        </div>`
+      )
+      .join('') + `<button class="addlang" id="addLang">+ Dil ekle</button>`;
+}
+
+function boardCard(f, i, loc, base, seamless) {
+  const { html, width, height } = renderFrame({
+    frame: f,
+    project: state.project,
+    deviceId: state.device,
+    orientation: state.project.orientation,
+    assetURL,
+    index: i,
+    locale: loc,
+  });
+  const s = 146 / width;
+  const on = i === state.sel && loc === state.locale;
+  const title = getLocalized(f, loc, base, 'title');
+  const subtitle = getLocalized(f, loc, base, 'subtitle');
+  // Çeviri satırlarında ana dildeki metni placeholder olarak göster.
+  const ph = loc === base ? ['Headline', 'Sub-headline'] : [f.title || 'Headline', f.subtitle || 'Sub-headline'];
+  return `<div class="bcell${seamless ? ' seam' : ''}">
+    <div class="gcard${on ? ' on' : ''}" data-i="${i}" data-loc="${loc}">
+      <div class="gshot" style="height:${height * s}px">
+        <span class="gidx">${i + 1}</span>
+        <span class="gtpl">${TEMPLATES[f.template || state.project.defaults.template].name}</span>
+        <div class="tw" style="transform:scale(${s})">${html}</div>
+      </div>
+      <input type="text" data-gt="${i}" data-loc="${loc}" placeholder="${escAttr(ph[0])}" value="${escAttr(title)}">
+      <input type="text" class="gsub" data-gs="${i}" data-loc="${loc}" placeholder="${escAttr(ph[1])}" value="${escAttr(subtitle)}">
+    </div>
+  </div>`;
 }
 
 function drawCanvas() {
@@ -166,6 +190,7 @@ function drawCanvas() {
     orientation: state.project.orientation,
     assetURL,
     index: state.sel,
+    locale: state.locale,
   });
   host.innerHTML = html;
   const stage = $('#stage').getBoundingClientRect();
@@ -191,6 +216,7 @@ function drawThumbs() {
       orientation: state.project.orientation,
       assetURL,
       index: i,
+      locale: state.locale,
     });
     const s = 146 / width;
     const div = document.createElement('div');
@@ -226,8 +252,8 @@ function drawThumbs() {
   });
 }
 
-function refreshGridCard(i) {
-  const card = $(`#gridHost .gcard[data-i="${i}"]`);
+function refreshGridCard(i, loc) {
+  const card = $(`#gridHost .gcard[data-i="${i}"][data-loc="${loc}"]`);
   if (!card) return;
   const f = state.project.frames[i];
   const { html, width, height } = renderFrame({
@@ -237,6 +263,7 @@ function refreshGridCard(i) {
     orientation: state.project.orientation,
     assetURL,
     index: i,
+    locale: loc,
   });
   const s = 206 / width;
   card.querySelector('.gshot').style.height = height * s + 'px';
@@ -250,25 +277,48 @@ $('#gridHost').addEventListener('input', (e) => {
   const t = e.target;
   const i = t.dataset.gt ?? t.dataset.gs;
   if (i === undefined) return;
-  state.project.frames[+i][t.dataset.gt !== undefined ? 'title' : 'subtitle'] = t.value;
+  const loc = t.dataset.loc;
+  const field = t.dataset.gt !== undefined ? 'title' : 'subtitle';
+  setLocalized(state.project.frames[+i], loc, state.project.locales[0], field, t.value);
   save();
-  refreshGridCard(+i);
+  refreshGridCard(+i, loc);
 });
 
 $('#gridHost').addEventListener('click', (e) => {
   if (e.target.id === 'gridAdd') { pickTarget = 'new'; $('#filePicker').click(); return; }
-  const card = e.target.closest('.gcard');
-  if (!card) return;
-  if (e.target.tagName === 'INPUT') {
-    state.sel = +card.dataset.i;
-    document.querySelectorAll('.gcard').forEach((c) => c.classList.toggle('on', c === card));
-    buildInspector();
+  if (e.target.id === 'addLang') { addLanguage(); return; }
+  if (e.target.dataset.rmlang) {
+    const code = e.target.dataset.rmlang;
+    if (!confirm(`"${code}" dili ve çevirileri silinsin mi?`)) return;
+    state.project.locales = state.project.locales.filter((l) => l !== code);
+    state.project.frames.forEach((f) => { if (f.l10n) delete f.l10n[code]; });
+    if (state.locale === code) state.locale = state.project.locales[0];
+    save(); paint(); buildInspector();
     return;
   }
+  const card = e.target.closest('.gcard');
+  if (!card) return;
   state.sel = +card.dataset.i;
+  state.locale = card.dataset.loc;
   document.querySelectorAll('.gcard').forEach((c) => c.classList.toggle('on', c === card));
   buildInspector();
 });
+
+function addLanguage() {
+  const used = new Set(state.project.locales);
+  const options = Object.keys(COMMON_LOCALES).filter((c) => !used.has(c));
+  const code = prompt(
+    `Dil kodu (ör. ${options.slice(0, 6).join(', ')})`,
+    options[0] || ''
+  );
+  if (!code) return;
+  const clean = code.trim();
+  if (!clean || used.has(clean)) return toast('Bu dil zaten var');
+  state.project.locales.push(clean);
+  state.locale = clean;
+  save(); paint(); buildInspector();
+  toast(`${localeLabel(clean)} eklendi — çevirileri satırdan doldur`);
+}
 
 // ---------------------------------------------------------------- modal
 function openModal(title, html) {
@@ -289,7 +339,8 @@ function openPackGallery() {
     const clone = JSON.parse(JSON.stringify(state.project));
     applySet(clone, id);
     // Storyboard setlerinde kompozisyon ancak birkaç karede okunuyor.
-    const shown = clone.frames.slice(0, SETS[id].story ? 5 : 3);
+    const shown = clone.frames.slice(0, SETS[id].story ? 5 : 4);
+    const cardW = 180;
     const strip = shown
       .map((f, j) => {
         const { html, width, height } = renderFrame({
@@ -299,29 +350,23 @@ function openPackGallery() {
           orientation: clone.orientation,
           assetURL,
           index: j,
+          locale: state.locale,
         });
-        const s = 74 / width;
-        return `<div class="sh" style="width:74px;height:${height * s}px">
+        const w = Math.floor((cardW - (shown.length - 1) * 3) / shown.length);
+        const s = w / width;
+        return `<div class="sh" style="width:${w}px;height:${height * s}px">
           <div class="tw" style="transform:scale(${s})">${html}</div></div>`;
       })
       .join('');
     // Sürekli setlerde araya boşluk koymuyoruz ki akış hemen görünsün.
     const seamless = SETS[id].sequence.some((t) => TEMPLATES[t].continuous);
-    return `<div class="packcard${state.project.set === id ? ' on' : ''}" data-pack="${id}">
+    return `<div class="packcard${state.project.set === id ? ' on' : ''}" data-pack="${id}" title="${SETS[id].hint}">
       <div class="strip${seamless ? ' seamless' : ''}">${strip}</div>
-      <div class="meta"><b>${SETS[id].name}</b><span>${SETS[id].hint}</span>
-        <em>${SETS[id].sequence.join(' · ')}</em></div>
+      <div class="meta"><b>${SETS[id].name}</b></div>
     </div>`;
   }).join('');
 
-  openModal(
-    'Style Packs — tüm sete tek tıkla uygula',
-    `<div class="pack-note">Önce buradan bir set seç: arkaplan, tipografi ve her karenin
-      düzeni birlikte gelir, hiçbir kare yarım kalmaz. Sonra istediğin kareyi sağdaki
-      panelden tek tek değiştirebilirsin.<br>
-      <b>Panorama</b> setlerinde arkaplan ve cihazlar kareden kareye devam eder.</div>
-     <div class="packgal">${cards}</div>`
-  );
+  openModal('Bir set seç', `<div class="packgal">${cards}</div>`);
 
   $('#modalBody').onclick = (e) => {
     const card = e.target.closest('[data-pack]');
@@ -461,6 +506,12 @@ function sec(id, title, body, closed = false) {
   return `<div class="sec${closed ? ' closed' : ''}" data-sec="${id}"><h3>${title}</h3><div class="body">${body}</div></div>`;
 }
 
+const txt = (field) =>
+  getLocalized(frame(), state.locale, state.project.locales[0], field);
+// Çeviri yaparken ana dildeki metni placeholder olarak göster.
+const ph = (field, fallback) =>
+  state.locale === state.project.locales[0] ? fallback : frame()[field] || fallback;
+
 function buildInspector() {
   const f = frame();
   if (!f) { $('#panels').innerHTML = '<div class="body mini">Add a screenshot to begin.</div>'; return; }
@@ -472,15 +523,20 @@ function buildInspector() {
     'content',
     'Content',
     `<div class="mini">Text always applies to this frame. **bold** and line breaks work.</div>
-     <input type="text" data-frame="eyebrow" placeholder="Eyebrow (optional)" value="${escAttr(f.eyebrow)}">
-     <textarea data-frame="title" placeholder="Headline">${escHtml(f.title)}</textarea>
-     <textarea data-frame="subtitle" placeholder="Sub-headline">${escHtml(f.subtitle)}</textarea>
+     ${state.project.locales.length > 1
+       ? `<div class="row"><label>Dil</label><select data-loc>${state.project.locales
+           .map((l) => `<option value="${l}"${l === state.locale ? ' selected' : ''}>${l} — ${localeLabel(l)}</option>`)
+           .join('')}</select></div>`
+       : ''}
+     <input type="text" data-frame="eyebrow" placeholder="Eyebrow (optional)" value="${escAttr(txt('eyebrow'))}">
+     <textarea data-frame="title" placeholder="${escAttr(ph('title', 'Headline'))}">${escHtml(txt('title'))}</textarea>
+     <textarea data-frame="subtitle" placeholder="${escAttr(ph('subtitle', 'Sub-headline'))}">${escHtml(txt('subtitle'))}</textarea>
      <div class="row"><label>Rol</label><select data-role>
        ${[['feature', 'Normal kare'], ['cover', 'Kapak (ilk kare)'], ['cta', 'CTA (son kare)']]
          .map(([v, t]) => `<option value="${v}"${(f.role || 'feature') === v ? ' selected' : ''}>${t}</option>`)
          .join('')}
      </select></div>
-     ${f.role === 'cta' ? `<input type="text" data-frame="cta" placeholder="Buton yazısı" value="${escAttr(f.cta)}">` : ''}
+     ${f.role === 'cta' ? `<input type="text" data-frame="cta" placeholder="Buton yazısı" value="${escAttr(txt('cta'))}">` : ''}
      ${f.role === 'cover' ? `<button class="ghost" id="pickIcon">Uygulama ikonu…${state.project.appIcon ? ' ✓' : ''}</button>` : ''}
      <button class="ghost" id="pickShot">Replace screenshot for ${DEVICES[state.device].label.split('(')[0].trim()}…</button>
      <div class="mini">${
@@ -642,8 +698,13 @@ $('#panels').addEventListener('input', (e) => {
     return;
   }
   if (t.dataset.frame) {
-    frame()[t.dataset.frame] = t.value;
+    setLocalized(frame(), state.locale, state.project.locales[0], t.dataset.frame, t.value);
     save(); paint();
+    return;
+  }
+  if (t.dataset.loc !== undefined) {
+    state.locale = t.value;
+    paint(); buildInspector();
     return;
   }
   if (t.dataset.role !== undefined) {
@@ -767,7 +828,17 @@ async function addShots(files, replaceCurrent) {
   if (!files.length) return;
   for (const [i, file] of files.entries()) {
     const { path } = await api.upload(state.name, file);
-    if (i === 0 && replaceCurrent && frame()) setScreenshot(frame(), state.device, path);
+    if (i === 0 && replaceCurrent && frame()) {
+      const b = state.project.locales[0];
+      if (state.locale === b) setScreenshot(frame(), state.device, path);
+      else {
+        // Dile özel ekran görüntüsü: sadece o dilin satırında değişir.
+        const cur = { ...(frame().l10n?.[state.locale] || {}) };
+        const tmp = { screenshot: cur.screenshot };
+        setScreenshot(tmp, state.device, path);
+        setLocalized(frame(), state.locale, b, 'screenshot', tmp.screenshot);
+      }
+    }
     else {
       state.project.frames.push(newFrame(state.project.frames.length, { screenshot: path }));
       state.sel = state.project.frames.length - 1;
@@ -849,6 +920,7 @@ async function openProject(name) {
   state.project = await api.load(name);
   state.sel = 0;
   state.device = state.project.devices[0];
+  state.locale = state.project.locales[0];
   buildDeviceTabs();
   paint();
   buildInspector();
