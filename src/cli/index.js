@@ -394,7 +394,7 @@ const help = `
   [1mLocalization[0m
     appshot lang <project>                     (list languages)
     appshot lang <project> add tr
-    appshot set <project> --lang tr --frames all --titles "Bir|İki|Üç"
+    appshot set <project> --lang de --frames all --titles "Eins|Zwei|Drei"
     appshot render <project> --locales en,tr   (out/<project>/<locale>/<device>/…)
     appshot rm <project> --frames 4
 

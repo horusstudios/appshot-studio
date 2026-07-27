@@ -1,147 +1,156 @@
 # AppShot Studio
 
-App Store / Google Play ekran görüntüsü üretici. İki arayüz, **tek render motoru** —
-editörde görünen şey export edilen şeyin aynısıdır (`src/core/render.js`).
+App Store / Google Play screenshot generator. Two front ends, **one render engine** —
+what you see in the editor is exactly what gets exported (`src/core/render.js`).
 
-## Claude için: toplu düzenleme nasıl yapılır
+## For Claude: how to do batch edits
 
-Kullanıcı "şu projedeki başlıkları değiştir", "hepsinin arkaplanını şu yap", "yeniden
-export et" gibi bir şey istediğinde **CLI'ı kullan**, JSON'u elle düzenleme.
+When the user asks for something like "change the headlines in that project", "make
+them all use this background", or "export it again", **use the CLI** — do not hand-edit
+the JSON.
 
 ```bash
 cd ~/appshot-studio
 
-appshot ls                      # projeler
-appshot info <proje>            # frame listesi, hangi template, hangi başlık
-appshot templates               # 14 layout
-appshot backgrounds             # hazır arkaplanlar
-appshot devices                 # cihaz + tam piksel ölçüleri
+appshot ls                      # projects
+appshot info <project>          # frame list: template and headline per frame
+appshot templates               # layouts
+appshot backgrounds             # background presets
+appshot devices                 # devices and their exact pixel sizes
 appshot fonts
 ```
 
-Tipik akış:
+A typical run:
 
 ```bash
-# 1) proje aç, simulator screenshot'larını ekle
-appshot new fluenta --app "Fluenta" --bg indigo
-appshot add fluenta ~/Desktop/shots/*.png
+# 1) create a project, add the simulator screenshots
+appshot new my-app --app "My App" --bg indigo
+appshot add my-app ~/Desktop/shots/*.png
 
-# 1.5) ÖNCE hazır set seç — tek tek şablon atamak yerine tüm sete tutarlı görünüm ver
+# 1.5) pick a pack FIRST — one consistent look for the whole set,
+#      instead of assigning templates frame by frame
 appshot packs
-appshot pack fluenta panorama-flow
+appshot pack my-app panorama-flow
 
-# 2) metinleri topluca yaz ( | ile ayır, frame sırasına göre dağıtılır )
-appshot set fluenta --frames all \
-  --titles "Konuşarak öğren|Maya ile pratik yap|İlerlemeni gör" \
-  --subtitles "Kart değil, gerçek sohbet|7/24 yapay zekâ öğretmen|Seri, dakika, seviye"
+# 2) write all the copy at once ( split with | , handed out in frame order )
+appshot set my-app --frames all \
+  --titles "Track it all in one place|Set it and forget it|See your progress" \
+  --subtitles "Every account, one screen|Rules run in the background|Weekly and monthly views"
 
-# 3) tek tek layout ver
-appshot set fluenta --frames 2 --template tilt-right
-appshot set fluenta --frames 3 --template duo
+# 3) override individual layouts
+appshot set my-app --frames 2 --template tilt-right
+appshot set my-app --frames 3 --template duo
 
-# 4) tüm projenin stilini değiştir (--frames YOKSA defaults'a yazar = hepsine uygulanır)
-appshot style fluenta --font Poppins --title-size 6.4 --bg "linear:160:#6366f1,#ec4899" --pattern dots
+# 4) restyle the whole project (NO --frames means it writes to defaults = everything)
+appshot style my-app --font Poppins --title-size 6.4 --bg "linear:160:#6366f1,#ec4899" --pattern dots
 
 # 5) export
-appshot render fluenta                       # project.devices'daki tüm cihazlar
-appshot render fluenta --devices iphone-6.9  # sadece biri
-appshot render fluenta --frames 1-3 --open
+appshot render my-app                       # every device in project.devices
+appshot render my-app --devices iphone-6.9  # just one
+appshot render my-app --frames 1-3 --open
 ```
 
-Çıktı: `out/<proje>/<cihaz>/01-baslik.png` — App Store'un istediği tam piksel ölçüsünde.
+Output: `out/<project>/<device>/01-headline.png` — at the exact pixel size the App
+Store expects.
 
-### Style pack'ler (önce bunu seç)
+### Style packs (start here)
 
-Bir pack; arkaplanı, tipografiyi, cihaz ayarını **ve her karenin şablonunu** birlikte
-tanımlar (`src/core/sets.js`). `appshot pack <proje> <id>` tüm sete uygular; kare
-sayısı sequence'ten uzunsa sıra başa döner, yani **hiçbir kare yarım kalmaz**.
-Pack uygulandığında kare bazlı görünüm override'ları (`background`/`text`/`device`)
-temizlenir — metinlere dokunulmaz. Sonrasında tek tek kare değiştirilebilir.
+A pack defines the background, the typography, the device settings **and the template
+for every frame**, all together (`src/core/sets.js`). `appshot pack <project> <id>`
+applies it to the whole set; if there are more frames than entries in the sequence it
+wraps around, so **no frame is ever left half-styled**. Applying a pack clears
+per-frame look overrides (`background`/`text`/`device`) but never touches the copy.
+Individual frames can still be changed afterwards.
 
-`panorama-flow` ve `panorama-tilt` **sürekli** setlerdir: arkaplan ve cihazlar
-kareden kareye devam eder, set tek bir geniş görsel gibi okunur.
+`panorama-flow` and `panorama-tilt` are **continuous** sets: the background and the
+devices carry on from one frame to the next, so the set reads as one wide image.
 
-**`story-*` setleri (storyboard):** set, 10 kareye bölünmüş TEK kompozisyondur.
-- Arkaplan şekilleri (`src/core/shapes.js`) şeridin tamamına çizilir; panel
-  kenarları bilerek kare sınırlarına denk gelmez (`offset: 0.5`).
-- Cihaz boyu/yüksekliği `variants[]` ritmiyle kareden kareye değişir; `strip-cross`
-  şablonunda her üçüncü cihaz kareyi aşıp komşuya taşar (`z: 0` ile arkada durur).
-- Metin `textVariants[]` ile sırayla üstte/altta. Cihazın kapladığı yere metin
-  koymamaya dikkat et — beyaz ekran görüntüsü üstünde beyaz metin kayboluyor.
-- İlk kare `role: 'cover'` (ikon + büyük başlık), son kare `role: 'cta'` (cihaz yok,
-  ortada başlık + buton). Rolleri `applySet` otomatik atar.
+**`story-*` packs (storyboard):** the set is ONE composition sliced into ~10 frames.
+- Background shapes (`src/core/shapes.js`) are drawn across the whole strip; panel
+  edges deliberately miss the frame boundaries (`offset: 0.5`).
+- Device size and height shift frame to frame through the `variants[]` rhythm; in
+  `strip-cross` every third device spills over into the next frame (`z: 0` keeps it
+  behind its neighbours).
+- Copy alternates top/bottom via `textVariants[]`. Do not place copy where the device
+  sits — white text over a white screenshot disappears.
+- The first frame gets `role: 'cover'` (icon + large headline), the last gets
+  `role: 'cta'` (no device, centred headline + button). `applySet` assigns the roles.
 
-Şekil türleri: `blocks` (mode `full`/`alt`), `blobs`, `waves`, `circles`.
-Arkaplan objesine `shapes: {...}` eklenerek her sete takılabilir.
+Shape kinds: `blocks` (mode `full`/`alt`), `blobs`, `waves`, `circles`. Add
+`shapes: {...}` to a background object to attach one to any pack.
 
-Sürekli şablonlar (`pano-flow`, `pano-tilt`, `pano-hero`) `continuous` alanıyla
-işaretlenir; render sırasında `count` kare genişliğinde bir şerit çizilip `index`
-kadar sola kaydırılır. Bu yüzden `renderFrame`'e **index geçmek şart** — geçilmezse
-`project.frames.indexOf(frame)` ile bulunur.
+Continuous templates (`pano-flow`, `pano-tilt`, `pano-hero`) are marked with the
+`continuous` field. At render time a strip `count` frames wide is drawn and shifted
+left by `index`, which is why **you must pass `index` to `renderFrame`** — without it
+the index falls back to `project.frames.indexOf(frame)`.
 
-### Lokalizasyon
+### Localization
 
 ```bash
-appshot lang <proje>                # dilleri listele (ilki ana dil)
-appshot lang <proje> add tr
-appshot set <proje> --lang tr --frames all --titles "Bir|İki|Üç"
-appshot render <proje> --locales en,tr
+appshot lang <project>                # list languages (the first one is the base)
+appshot lang <project> add tr
+appshot set <project> --lang tr --frames all --titles "Bir|İki|Üç"
+appshot render <project> --locales en,tr
 ```
 
-- Sadece **metin ve ekran görüntüsü** dile göre değişir (`L10N_FIELDS`, `src/core/l10n.js`).
-  Şablon, arkaplan, cihaz ayarı tüm dillerde ortaktır — düzeni bir kez kurarsın.
-- Çeviriler `frame.l10n[dil]` altında durur; boş bırakılan alan ana dile düşer.
-- `--lang` verilmezse `set` ana dile yazar.
-- Export: tek dilde `out/<proje>/<cihaz>/`, çok dilde `out/<proje>/<dil>/<cihaz>/`.
-  Dosya adları o dilin başlığından türer.
+- Only **text and screenshots** vary by language (`L10N_FIELDS`, `src/core/l10n.js`).
+  Template, background and device settings are shared — you build the layout once.
+- Translations live under `frame.l10n[locale]`; a field left empty falls back to the base.
+- Without `--lang`, `set` writes to the base language.
+- Export: `out/<project>/<device>/` for a single language,
+  `out/<project>/<locale>/<device>/` for several. File names come from that
+  language's headline.
 
-### Önemli kurallar
+### Rules that matter
 
-- `--frames` **verilmezse** `style` komutu proje varsayılanlarını değiştirir → her frame etkilenir.
-  `--frames 2,4` veya `--frames 1-3` verilirse sadece o frame'lere override yazılır.
-- Frame numaraları **1'den** başlar.
-- Metin `**kalın**` ve satır sonu (`\n`) destekler.
-- iPad'e ayrı screenshot koymak için: `appshot set <proje> --frames 1 --shot ~/x.png --for ipad-13`.
-  Verilmezse aynı görsel tüm cihazlarda kullanılır (telefon görseli iPad'de kırpılır).
-- Ölçü birimleri çözünürlükten bağımsız: font boyutu / cihaz genişliği **kanvas genişliğinin yüzdesi**.
-  Bu yüzden aynı ayar iPhone'da ve iPad'de aynı görünür.
+- With **no** `--frames`, `style` changes the project defaults → every frame is affected.
+  With `--frames 2,4` or `--frames 1-3` it writes overrides only on those frames.
+- Frame numbers start at **1**.
+- Copy supports `**bold**` and line breaks (`\n`).
+- To use a different screenshot on iPad:
+  `appshot set <project> --frames 1 --shot ~/x.png --for ipad-13`.
+  Otherwise the same image is used everywhere (a phone shot gets cropped on iPad).
+- Units are resolution independent: font size and device width are a **percentage of
+  the canvas width**, so the same settings look the same on iPhone and iPad.
 
-## Görsel editör
+## Visual editor
 
 ```bash
 appshot editor          # http://localhost:4321
 ```
 
-Sol: frame şeridi · Orta: canlı önizleme · Sağ: inspector.
-Üstteki **This frame / All frames** anahtarı, yaptığın değişikliğin tek frame'e mi
-yoksa tüm projeye mi yazılacağını belirler (CLI'daki `--frames` mantığının aynısı).
-PNG'leri pencereye sürükle-bırak yeni frame açar.
+Left: frame strip · Middle: live preview · Right: inspector.
+The **This frame / All frames** switch at the top decides whether an edit lands on one
+frame or on the whole project (the same idea as `--frames` in the CLI).
+Dropping PNGs on the window creates new frames.
 
-- **Edit / Grid** anahtarı: Grid, blueprint board'dur — **her dil bir satır**, her kare
-  bir sütun. Başlık/alt başlık kartın altından doğrudan yazılır. Çeviri satırlarında
-  ana dildeki metin placeholder olarak görünür, boş bırakılan alan ana dile düşer.
-  Satır sonundaki **+ Dil ekle** yeni bir dil satırı açar.
-- **Browse all templates visually…** (Template bölümünde): 14 şablonu *o karenin kendi
-  görseliyle* render edip gösterir, tıklayınca uygular.
-- **✳ Claude Code** düğmesi: o projeye özel komut kopyası (bu dosyadaki akışın kısa hali).
+- **Edit / Grid** switch: Grid is the blueprint board — **one row per language**, one
+  column per frame. Headline and sub-headline are typed straight under each card. On
+  translation rows the base-language text shows as the placeholder, and anything left
+  empty falls back to the base. **+ Add language** at the end adds a row.
+- **Browse all templates visually…** (in the Template section): renders every template
+  *using that frame's own screenshot and copy*; click to apply.
+- **✳ Claude Code** button: the commands for that project, ready to copy — the short
+  version of this file.
 
-## Dosya yapısı
+## File layout
 
 ```
-projects/<proje>/project.json    # tek gerçek kaynak (frames, defaults, devices)
-projects/<proje>/assets/         # yüklenen screenshot'lar
-out/<proje>/<cihaz>/*.png        # export
-src/core/                        # render motoru — tarayıcı ve CLI ortak kullanır
+projects/<project>/project.json    # the single source of truth (frames, defaults, devices)
+projects/<project>/assets/         # uploaded screenshots
+out/<project>/<device>/*.png       # exports
+src/core/                          # render engine — shared by the browser and the CLI
 ```
 
-`project.json` şeması: `frames[]` içindeki her alan (`template`, `background`,
-`text.*`, `device.*`) `defaults`'takini ezer. Boş bırakılan alan defaults'tan gelir.
+`project.json` schema: any field on a frame (`template`, `background`, `text.*`,
+`device.*`) overrides the one in `defaults`. Anything left empty comes from defaults.
 
-## Teknik notlar
+## Technical notes
 
-- Render Chromium ile yapılır (`playwright-core`, Playwright cache'indeki binary bulunur).
-  Bulunamazsa: `npx playwright install chromium` ya da `APPSHOT_CHROME=/path/to/chrome`.
-- Cihaz çerçeveleri saf CSS ile çizilir — dışarıdan görsel/asset gerekmez, her ölçekte net.
-- Fontlar Google Fonts'tan çekilir; internet yoksa `--offline` ile sistem fontuna düşer.
-- Stil değerleri `style="..."` attribute'una gömüldüğü için **çift tırnak kullanma**
-  (font stack'leri, `url()` vb. tek tırnaklı olmalı).
+- Rendering runs through Chromium (`playwright-core`, found in the Playwright cache).
+  If it is missing: `npx playwright install chromium`, or set
+  `APPSHOT_CHROME=/path/to/chrome`.
+- Device frames are drawn in pure CSS — no external assets, sharp at any scale.
+- Fonts come from Google Fonts; with no internet, `--offline` falls back to system fonts.
+- Style values are inlined into `style="..."` attributes, so **never use double quotes**
+  inside them (font stacks, `url()` and friends must use single quotes).

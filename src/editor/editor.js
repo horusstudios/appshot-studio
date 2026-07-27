@@ -457,13 +457,13 @@ function openClaudePanel() {
     ['Pick a ready-made look for the whole set',
      `appshot packs\nappshot pack ${n} story-blocks`],
     ['Rewrite every headline',
-     `appshot set ${n} --frames all \\\n  --titles "Learn by speaking|Practise with Maya|See your progress" \\\n  --subtitles "Real conversations, not flashcards|An AI tutor, 24/7|Streaks, minutes and levels"`],
+     `appshot set ${n} --frames all \\\n  --titles "Track it all in one place|Set it and forget it|See your progress" \\\n  --subtitles "Every account, one screen|Rules run in the background|Weekly and monthly views"`],
     ['Tilt frame 2, put two phones on frame 3',
      `appshot set ${n} --frames 2 --template tilt-right\nappshot set ${n} --frames 3 --template duo`],
     ['Change the background and type for the whole set',
      `appshot style ${n} --bg "linear:160:#6366f1,#ec4899" --font Poppins --title-size 6.3 --pattern dots`],
     ['Add another language',
-     `appshot lang ${n} add tr\nappshot set ${n} --lang tr --frames all --titles "Konuşarak öğren|Maya ile pratik|İlerlemeni gör"`],
+     `appshot lang ${n} add de\nappshot set ${n} --lang de --frames all --titles "Alles an einem Ort|Einmal einstellen|Fortschritt sehen"`],
     ['Add new screenshots', `appshot add ${n} ~/Desktop/shots/*.png`],
     ['Use a different image for iPad',
      `appshot set ${n} --frames 1 --shot ~/Desktop/ipad-home.png --for ipad-13`],
@@ -924,7 +924,7 @@ $('#newProject').onclick = () => {
     'New project',
     `<div class="cc-intro">The project name becomes its folder name — letters, digits and dashes.</div>
      <div class="row">
-       <input type="text" id="npName" placeholder="fluenta">
+       <input type="text" id="npName" placeholder="my-app">
        <button class="primary" id="npGo" style="flex:0 0 auto">Create</button>
      </div>`
   );
