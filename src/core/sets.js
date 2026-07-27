@@ -1,10 +1,10 @@
 // Style packs — a whole screenshot SET in one click.
 //
-// Bir pack; arkaplan, tipografi, cihaz ayarı ve kare kare hangi şablonun
-// kullanılacağını birlikte tanımlar. `sequence` kare sayısından kısaysa
-// başa dönüp devam eder, böylece set hiçbir zaman yarım kalmaz.
+// A pack defines background, typography, device settings AND which template
+// each frame uses, all together. If `sequence` is shorter than the frame count
+// it wraps around, so a set can never end up half-styled.
 //
-// Pack uygulandıktan sonra tek tek kareler yine değiştirilebilir.
+// Individual frames can still be changed after a pack is applied.
 
 import { DEFAULT_TEXT, DEFAULT_DEVICE } from './render.js';
 
@@ -182,16 +182,16 @@ export const SETS = {
 };
 
 // --- Storyboard setleri ------------------------------------------------------
-// Bunlarda set, 10 kareye bölünmüş TEK bir kompozisyondur: arkaplan şekilleri
-// kare sınırlarını keser, cihaz boyu kareden kareye değişir, bazı cihazlar iki
-// ekrana birden yayılır. İlk kare kapak, son kare CTA olur.
+// Here the set is ONE composition sliced into ~10 frames: background shapes cut
+// across frame edges, device size shifts from frame to frame, and some devices
+// span two screenshots. The first frame becomes a cover, the last a CTA.
 
 const storyText = (over = {}) => ({
   font: 'Inter', color: '#ffffff', titleSize: 4.6, titleWeight: 800,
   titleLetterSpacing: -1.5, subtitleSize: 2.5, subtitleWeight: 400,
   eyebrowSize: 1.9, eyebrowWeight: 700, eyebrowLetterSpacing: 12,
-  // Metin bazen renkli blokların üstüne denk geliyor; hafif gölge her iki
-  // zeminde de okunur tutuyor.
+  // Copy sometimes lands on top of a coloured block; a light shadow keeps it
+  // readable on either ground.
   gap: 1.6, shadow: 0.3, ...over,
 });
 
@@ -203,8 +203,8 @@ Object.assign(SETS, {
     defaults: {
       background: {
         type: 'solid', color: '#0e4a5e',
-        // Tek renk + alt modu: paneller her karede yön değiştirip zikzak yapar,
-        // böylece her karede hem koyu hem lime alan kalır.
+        // One colour + alt mode: panels flip side each frame and zigzag, so every
+        // frame keeps both a dark area and a lime one.
         shapes: { kind: 'blocks', mode: 'alt', colors: ['#5f9e2b'], skew: 0.1, size: 0.56 },
       },
       text: storyText(),

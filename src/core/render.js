@@ -318,7 +318,7 @@ export function renderFrame({
   locale,
 }) {
   const dev = getDevice(deviceId);
-  // Metin ve (varsa) ekran görüntüsü dile göre çözülür; düzen tüm dillerde ortak.
+  // Text and (optionally) the screenshot resolve per language; layout is shared.
   const base = (project.locales && project.locales[0]) || 'en';
   const L = (fr) => localizedFrame(fr, locale, base);
   frame = L(frame);
@@ -329,8 +329,8 @@ export function renderFrame({
   const templateId = frame.template || defaults.template || 'text-top';
   const tpl = getTemplate(templateId, dev.kind);
 
-  // Kapak ve CTA kareleri kendi tipografi ölçeğini kullanır; kullanıcının kare
-  // bazlı override'ı yine en üstte kalır.
+  // Cover and CTA frames use their own type scale; a per-frame override the
+  // user set still wins over it.
   const roleStyle =
     frame.role === 'cover' ? tpl.cover && tpl.cover.style
     : frame.role === 'cta' ? tpl.cta && tpl.cta.style
@@ -410,7 +410,7 @@ export function renderFrame({
       .join('');
   }
 
-  // Şerit boyunca akan dekoratif şekil katmanı.
+  // Decorative shape layer flowing along the strip.
   const shapeSpec = bgResolved.shapes;
   const shapesHTML = shapeSpec
     ? shapesSVG(shapeSpec, { stripW, ch, cw, count: cont ? count : 1 })

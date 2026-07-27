@@ -82,8 +82,8 @@ main { flex: 1; display: grid; grid-template-columns: auto 1fr 320px; min-height
 .addframe:hover { border-color: var(--accent); color: var(--text); }
 .filmstrip .hint { color: #5b6072; font-size: 11px; text-align: center; }
 
-/* `safe center` şart: normal center'da büyütülen kanvasın taşan üst/sol kısmı
-   kırpılıp scroll ile erişilemez hale geliyor. */
+/* `safe center` is required: with plain centering, the top/left overflow of a
+   zoomed-in canvas gets clipped and cannot be scrolled to. */
 .stage {
   position: relative; overflow: auto; padding: 24px;
   display: flex; justify-content: safe center; align-items: safe center;

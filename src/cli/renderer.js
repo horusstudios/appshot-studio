@@ -139,7 +139,8 @@ export async function renderProject(name, opts = {}) {
       });
       await page.waitForTimeout(opts.settle ?? 250);
 
-      // Tek dilli projelerde yol değişmesin diye dil klasörü sadece çok dilde açılır.
+      // Only add a locale folder for multi-language projects, so single-language
+      // output paths stay exactly where they were.
       const outDir = multiLocale
         ? path.join(outRoot, locale, deviceId)
         : path.join(outRoot, deviceId);

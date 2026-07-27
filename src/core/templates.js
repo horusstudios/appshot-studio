@@ -162,7 +162,7 @@ export const TEMPLATES = {
     tablet: { devices: [{ w: 68, y: 30, x: 0, rotate: 0 }] },
   },
 
-  // --- storyboard strips: set 10 kareye yayılmış TEK kompozisyondur -----------
+  // --- storyboard strips: the set is ONE composition spread over ~10 frames ---
   'strip-blocks': {
     name: 'Strip — blocks',
     hint: 'Colour blocks cut across frame edges; device sizes shift in a rhythm.',
@@ -209,8 +209,8 @@ export const TEMPLATES = {
       { w: 62, y: 28, z: 2 },
       { w: 104, y: 24, z: 0 },
     ],
-    // Bu şablonda her cihaz ekranın üst üçte birinden başlayıp aşağı taşıyor;
-    // alta düşen metin beyaz ekran görüntüsünün üstünde kayboluyordu.
+    // Every device here starts in the top third and bleeds down, so copy pushed
+    // to the bottom used to disappear over the white screenshot.
     textVariants: [{ anchor: 'top', y: 6 }],
     cover: {
       device: { w: 58, y: 44 },
@@ -281,9 +281,9 @@ export function getTemplate(id, deviceKind = 'phone') {
 }
 
 /**
- * Bir karenin cihaz yerleşimi: temel şablon + o karenin ritim varyantı + rolü.
- * Ritim sayesinde set boyunca cihaz boyu/yüksekliği değişir, bazıları kareyi
- * aşıp komşuya taşar.
+ * Device placement for one frame: base template + that frame's rhythm variant
+ * + its role. The rhythm is what makes device size and height change across the
+ * set, with some devices spilling over into the neighbouring frame.
  */
 export function deviceSpecFor(tpl, frameIndex, role) {
   let spec = { ...tpl.devices[0] };

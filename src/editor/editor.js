@@ -117,7 +117,7 @@ function paint() {
   else { drawCanvas(); drawThumbs(); }
 }
 
-// Blueprint board: her dil bir satır, her kare bir sütun.
+// Blueprint board: one row per language, one column per frame.
 function drawGrid() {
   const host = $('#gridHost');
   const base = state.project.locales[0];
@@ -162,7 +162,7 @@ function boardCard(f, i, loc, base, seamless) {
   const on = i === state.sel && loc === state.locale;
   const title = getLocalized(f, loc, base, 'title');
   const subtitle = getLocalized(f, loc, base, 'subtitle');
-  // Çeviri satırlarında ana dildeki metni placeholder olarak göster.
+  // On translation rows, show the base-language text as the placeholder.
   const ph = loc === base ? ['Headline', 'Sub-headline'] : [f.title || 'Headline', f.subtitle || 'Sub-headline'];
   return `<div class="bcell${seamless ? ' seam' : ''}">
     <div class="gcard${on ? ' on' : ''}" data-i="${i}" data-loc="${loc}" style="width:${cardW}px;flex:0 0 ${cardW}px">
@@ -266,7 +266,7 @@ function refreshGridCard(i, loc) {
     index: i,
     locale: loc,
   });
-  const s = (146 * state.zoom) / width; // boardCard ile aynı ölçek
+  const s = (146 * state.zoom) / width; // same scale as boardCard
   card.querySelector('.gshot').style.height = height * s + 'px';
   card.querySelector('.tw').style.transform = `scale(${s})`;
   card.querySelector('.tw').innerHTML = html;
@@ -372,7 +372,7 @@ function openPackGallery() {
   const cards = SET_IDS.map((id) => {
     const clone = JSON.parse(JSON.stringify(state.project));
     applySet(clone, id);
-    // Storyboard setlerinde kompozisyon ancak birkaç karede okunuyor.
+    // A storyboard composition only reads across several frames.
     const shown = clone.frames.slice(0, SETS[id].story ? 5 : 4);
     const cardW = 180;
     const strip = shown
@@ -392,7 +392,7 @@ function openPackGallery() {
           <div class="tw" style="transform:scale(${s})">${html}</div></div>`;
       })
       .join('');
-    // Sürekli setlerde araya boşluk koymuyoruz ki akış hemen görünsün.
+    // No gap for continuous sets, so the flow is obvious at a glance.
     const seamless = SETS[id].sequence.some((t) => TEMPLATES[t].continuous);
     return `<div class="packcard${state.project.set === id ? ' on' : ''}" data-pack="${id}" title="${SETS[id].hint}">
       <div class="strip${seamless ? ' seamless' : ''}">${strip}</div>
@@ -527,7 +527,7 @@ function sec(id, title, body, closed = false) {
 
 const txt = (field) =>
   getLocalized(frame(), state.locale, state.project.locales[0], field);
-// Çeviri yaparken ana dildeki metni placeholder olarak göster.
+// While translating, show the base-language text as the placeholder.
 const ph = (field, fallback) =>
   state.locale === state.project.locales[0] ? fallback : frame()[field] || fallback;
 
@@ -851,7 +851,7 @@ async function addShots(files, replaceCurrent) {
       const b = state.project.locales[0];
       if (state.locale === b) setScreenshot(frame(), state.device, path);
       else {
-        // Dile özel ekran görüntüsü: sadece o dilin satırında değişir.
+        // Language-specific screenshot: only changes on that language's row.
         const cur = { ...(frame().l10n?.[state.locale] || {}) };
         const tmp = { screenshot: cur.screenshot };
         setScreenshot(tmp, state.device, path);
@@ -889,7 +889,7 @@ document.addEventListener('drop', async (e) => {
 // topbar
 $('#zoom').oninput = (e) => {
   state.zoom = +e.target.value / 100;
-  // Board görünümünde kart genişliği değiştiği için tam yeniden çizim gerekiyor.
+  // Card width changes in board view, so it needs a full redraw.
   if (state.view === 'grid') { $('#gridHost').innerHTML = ''; drawGrid(); }
   else drawCanvas();
 };
@@ -963,8 +963,8 @@ async function openProject(name) {
   buildDeviceTabs();
   paint();
   buildInspector();
-  // Bir set seçilmeden tek tek kare düzenlemek yarım kalmış setlere yol açıyor;
-  // o yüzden ilk açılışta pack seçtiriyoruz.
+  // Editing frames one by one before picking a set leads to half-styled sets,
+  // so ask for a pack the first time a project is opened.
   if (!state.project.set && state.project.frames.length) openPackGallery();
 }
 

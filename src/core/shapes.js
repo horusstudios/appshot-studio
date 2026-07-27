@@ -1,8 +1,8 @@
 // Decorative shape layer drawn ACROSS the whole set.
 //
-// Şeridin tamamına tek bir SVG çizilir (genişlik = kare sayısı × kare genişliği),
-// sonra her kare bu şeridin kendi dilimini gösterir. Şekillerin kenarları kare
-// sınırlarıyla hizalanmadığı için set tek parça bir kompozisyon gibi okunur.
+// One SVG is drawn across the whole strip (width = frame count × frame width),
+// and each frame shows its own slice of it. Shape edges deliberately do not line
+// up with the frame boundaries, so the set reads as a single composition.
 
 const rnd = (seed) => {
   const x = Math.sin(seed * 127.1 + 311.7) * 43758.5453;
@@ -47,8 +47,8 @@ export function shapesSVG(spec, geo) {
   let body = '';
 
   switch (spec.kind) {
-    // Renk panelleri. Panel adımı kare genişliğine eşit ama yarım kare kaydırılmış
-    // olduğu için kesişimler kare ortalarına denk gelir — bağlantı hissini bu verir.
+    // Colour panels. The pitch equals one frame width but is offset by half a
+    // frame, so the seams land mid-frame — that is what ties the set together.
     case 'blocks': {
       const pitch = cw * (spec.pitch ?? 1);
       const off = (spec.offset ?? 0.5) * pitch;
@@ -62,8 +62,8 @@ export function shapesSVG(spec, geo) {
         const x1 = x0 + pitch;
         let pts;
         if (mode === 'alt') {
-          // Üst/alt değişimi renk değişiminden bağımsız olmalı; yoksa aynı renkteki
-          // bloklar hep aynı tarafa yapışıp ritim kayboluyor.
+          // The top/bottom flip must be independent of the colour cycle, or blocks
+          // of one colour all stick to the same side and the rhythm disappears.
           const top = Math.floor(k / colors.length) % 2 === 0;
           const h = ch * (spec.size ?? 0.56);
           pts = top
@@ -77,7 +77,7 @@ export function shapesSVG(spec, geo) {
       break;
     }
 
-    // Organik lekeler — şeridin her yerine dağılır, kare sınırı tanımaz.
+    // Organic blobs — scattered across the strip, ignoring frame boundaries.
     case 'blobs': {
       const per = spec.per ?? 1.4;
       const total = Math.max(3, Math.round(count * per));
@@ -91,7 +91,7 @@ export function shapesSVG(spec, geo) {
       break;
     }
 
-    // Şeridin boyunca alçalıp yükselen tek bir dalga.
+    // A single wave rising and falling along the strip.
     case 'waves': {
       const amp = ch * (spec.size ?? 0.16);
       const base = ch * (spec.baseline ?? 0.62);
@@ -113,12 +113,12 @@ export function shapesSVG(spec, geo) {
       break;
     }
 
-    // Metin bloklarının arkasına oturan büyük daireler.
+    // Large circles sitting behind the copy blocks.
     case 'circles': {
       const r = cw * (spec.size ?? 0.44);
       const every = spec.every ?? 2;
-      // Daireler metnin arkasına oturmalı; şablon metni hep üstteyse aşağı
-      // kaçan daire alakasız duruyor.
+      // Circles belong behind the copy; when a template keeps all copy on top,
+      // a circle drifting to the bottom just looks unrelated.
       for (let j = 0; j < count; j++) {
         if (j % every !== (spec.phase ?? 1) % every) continue;
         const color = colors[j % colors.length];

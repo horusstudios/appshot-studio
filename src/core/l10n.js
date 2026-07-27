@@ -1,8 +1,8 @@
-// Localization helpers. Bağımsız modül — render.js ile project.js arasında
-// döngüsel import oluşmasın diye burada duruyor.
+// Localization helpers. A standalone module so render.js and project.js do not
+// end up importing each other in a cycle.
 //
-// Sadece metin ve (istenirse) ekran görüntüsü dile göre değişir; şablon,
-// arkaplan ve cihaz ayarları tüm dillerde ortaktır.
+// Only text and (optionally) the screenshot vary by language; template,
+// background and device settings are shared across every language.
 
 export const L10N_FIELDS = ['title', 'subtitle', 'eyebrow', 'cta', 'screenshot'];
 
@@ -10,7 +10,7 @@ export function baseLocale(project) {
   return (project && project.locales && project.locales[0]) || 'en';
 }
 
-/** Bir kareyi verilen dile göre çözer; boş bırakılan alanlar ana dile düşer. */
+/** Resolve a frame for a language; fields left empty fall back to the base. */
 export function localizedFrame(frame, locale, base) {
   if (!locale || locale === base) return frame;
   const o = (frame.l10n && frame.l10n[locale]) || {};
@@ -37,7 +37,7 @@ export function setLocalized(frame, locale, base, field, value) {
   return frame;
 }
 
-// Yaygın dil kodları — editörde dil eklerken öneri olarak gösterilir.
+// Common locale codes — offered as suggestions when adding a language.
 export const COMMON_LOCALES = {
   en: 'English', tr: 'Türkçe', de: 'Deutsch', fr: 'Français', es: 'Español',
   it: 'Italiano', pt: 'Português', ru: 'Русский', ja: '日本語', ko: '한국어',
