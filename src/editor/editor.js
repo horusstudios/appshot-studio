@@ -115,6 +115,7 @@ function paint() {
   $('.filmstrip').classList.toggle('collapsed', grid);
   if (grid) drawGrid();
   else { drawCanvas(); drawThumbs(); }
+  markSelectedLayer();
 }
 
 // Blueprint board: one row per language, one column per frame.
@@ -287,6 +288,7 @@ $('#gridHost').addEventListener('input', (e) => {
 });
 
 $('#gridHost').addEventListener('click', (e) => {
+  if (justDragged) return;
   if (e.target.id === 'gridAdd') { pickTarget = 'new'; $('#filePicker').click(); return; }
   if (e.target.id === 'addLang') { addLanguage(); return; }
   if (e.target.dataset.rmlang) { removeLanguage(e.target.dataset.rmlang); return; }
@@ -361,6 +363,72 @@ function removeLanguage(code) {
     save(); closeModal(); paint(); buildInspector();
   };
 }
+
+// ---------------------------------------------------------------- layer dragging
+// Drag a layer straight on the canvas — works in both the board and the single
+// preview. Position is written as a percentage of the canvas, so the result is
+// identical at any zoom or device size.
+let drag = null;
+let justDragged = false;
+
+function markSelectedLayer() {
+  document.querySelectorAll('.ash-layer.sel').forEach((el) => el.classList.remove('sel'));
+  const scope = state.view === 'grid'
+    ? document.querySelector(`.gcard[data-i="${state.sel}"][data-loc="${state.locale}"]`)
+    : $('#canvasHost');
+  scope?.querySelector(`.ash-layer[data-l="${state.layer}"]`)?.classList.add('sel');
+}
+
+document.addEventListener('mousedown', (e) => {
+  const el = e.target.closest('.ash-layer');
+  if (!el) return;
+  const canvas = el.closest('.ash-canvas');
+  const card = el.closest('.gcard');
+  // A board card only edits its own row's language; ignore drags on other rows.
+  if (card && card.dataset.loc !== state.locale) return;
+  const fi = card ? +card.dataset.i : state.sel;
+  const li = +el.dataset.l;
+  const layer = state.project.frames[fi]?.layers?.[li];
+  if (!layer || !canvas) return;
+
+  e.preventDefault();
+  state.sel = fi;
+  state.layer = li;
+  drag = {
+    el, layer,
+    rect: canvas.getBoundingClientRect(),
+    sx: e.clientX, sy: e.clientY,
+    x0: layer.x ?? 0, y0: layer.y ?? 50,
+    moved: false,
+  };
+  document.body.classList.add('dragging-layer');
+  buildInspector();
+  markSelectedLayer();
+});
+
+window.addEventListener('mousemove', (e) => {
+  if (!drag) return;
+  const dx = ((e.clientX - drag.sx) / drag.rect.width) * 100;
+  const dy = ((e.clientY - drag.sy) / drag.rect.height) * 100;
+  if (Math.abs(e.clientX - drag.sx) > 2 || Math.abs(e.clientY - drag.sy) > 2) drag.moved = true;
+  drag.layer.x = Math.round((drag.x0 + dx) * 10) / 10;
+  drag.layer.y = Math.round((drag.y0 + dy) * 10) / 10;
+  // Move the dragged element directly; a full repaint mid-drag would stutter.
+  drag.el.style.left = `${50 + drag.layer.x}%`;
+  drag.el.style.top = `${drag.layer.y}%`;
+});
+
+window.addEventListener('mouseup', () => {
+  if (!drag) return;
+  justDragged = drag.moved;
+  drag = null;
+  document.body.classList.remove('dragging-layer');
+  save();
+  paint();
+  buildInspector();
+  markSelectedLayer();
+  setTimeout(() => (justDragged = false), 0);
+});
 
 // ---------------------------------------------------------------- modal
 function openModal(title, html) {
@@ -663,7 +731,8 @@ function buildInspector() {
        : ''}
      <button class="ghost" id="addLayer">+ Add image layer</button>
      ${sel
-       ? layerRange('Size', 'w', 3, 120, 0.5, sel.w ?? 26) +
+       ? `<div class="mini">Drag it on the canvas to position it.</div>` +
+         layerRange('Size', 'w', 3, 120, 0.5, sel.w ?? 26) +
          layerRange('X', 'x', -60, 60, 0.5, sel.x ?? 0) +
          layerRange('Y', 'y', -10, 110, 0.5, sel.y ?? 50) +
          layerRange('Rotate', 'rotate', -180, 180, 1, sel.rotate ?? 0) +
@@ -882,7 +951,7 @@ $('#panels').addEventListener('click', (e) => {
     return;
   }
   const litem = t.closest('[data-layer]');
-  if (litem) { state.layer = +litem.dataset.layer; buildInspector(); return; }
+  if (litem) { state.layer = +litem.dataset.layer; buildInspector(); markSelectedLayer(); return; }
   if (t.id === 'pickShot') { pickTarget = 'shot'; $('#filePicker').click(); return; }
   if (t.id === 'shotAll') {
     const cur = resolveScreenshots(frame(), state.device)[0];

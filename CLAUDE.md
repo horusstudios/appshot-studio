@@ -133,10 +133,12 @@ Dropping PNGs on the window creates new frames.
 - Clicking a card selects that frame (and drops out of All-frames scope, so the next
   edit hits only it). With **All frames** active every card is outlined, because that
   is what the next edit will change.
-- **Layers** section: stack extra images on a frame — badges, logos, cut-outs. Each
-  layer has size, x/y, rotation, opacity and a *behind the device* toggle. Layers are
-  per frame and shared across languages (`frame.layers[]`, see `DEFAULT_LAYER` in
-  `src/core/render.js`).
+- **Layers** section: stack extra images on a frame — badges, logos, cut-outs.
+  **Drag a layer directly on the canvas** to position it (works in both Grid and
+  Edit); the sliders cover size, rotation and opacity, plus a *behind the device*
+  toggle. Position is stored as a percentage of the canvas, so it holds at any zoom
+  and on every device size. Layers are per frame and shared across languages
+  (`frame.layers[]`, see `DEFAULT_LAYER` in `src/core/render.js`).
 - **✳ Claude Code** button: the commands for that project, ready to copy — the short
   version of this file.
 

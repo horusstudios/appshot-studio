@@ -216,10 +216,11 @@ function renderLayers(frame, assetURL) {
   const layers = frame.layers;
   if (!Array.isArray(layers) || !layers.length) return '';
   return layers
-    .map((raw) => {
+    .map((raw, k) => {
       const l = { ...DEFAULT_LAYER, ...raw };
       if (!l.src) return '';
-      return `<img class="ash-layer" src="${esc(assetURL(l.src))}" alt="" style="
+      // data-l lets the editor map a dragged element back to its layer.
+      return `<img class="ash-layer" data-l="${k}" src="${esc(assetURL(l.src))}" alt="" style="
         left:${50 + l.x}%;top:${l.y}%;width:${l.w}%;
         transform:translate(-50%,-50%) rotate(${l.rotate}deg);
         opacity:${l.opacity};
