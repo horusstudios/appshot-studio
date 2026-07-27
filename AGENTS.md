@@ -110,11 +110,16 @@ appshot render <project> --locales en,tr
 
 ### Linked frames
 
-Frames carrying the same `group` id are consecutive slices of ONE screenshot: on a
-continuous template their device is drawn once, centred on the seam, so half of it
-falls on each frame. They behave as a unit — setting `--shot` on one fills every
-member, and deleting one deletes them all (`groupRange`/`groupMembers` in
-`src/core/project.js`).
+Frames carrying the same `group` id are consecutive slices of ONE screenshot, and
+their device is split down the seam so half lands on each frame. This works on every
+template: a continuous one draws the device once on the strip, while an ordinary one
+has each frame draw it shifted half a canvas across, with the overflow clipped.
+
+They behave as a unit — setting `--shot` on one fills every member, deleting one
+deletes them all, and in the editor any layout, background or device change on one
+half is written to the other, because the two halves must match or the seam stops
+lining up. Only the copy stays per frame. See `groupRange`/`groupMembers` in
+`src/core/project.js`.
 
 ```bash
 appshot blank <project> --pair
@@ -143,9 +148,9 @@ Left: frame strip · Middle: live preview · Right: inspector.
 The **This frame / All frames** switch at the top decides whether an edit lands on one
 frame or on the whole project (the same idea as `--frames` in the CLI).
 Dropping PNGs on the window creates new frames; dropping one onto a card fills that
-frame instead. **+ Add screen** adds an empty frame with a placeholder you click or
-drop onto — so you can lay the whole set out before you have the images. **+ Linked
-pair** adds two frames that share one screenshot.
+frame instead. **+ Add screen** asks whether you want a single frame or a linked
+pair, then drops in empty frames with placeholders you click or drop onto — so you
+can lay the whole set out before you have the images.
 
 - **Grid / Edit** switch: Grid is the default — the blueprint board — **one row per language**, one
   column per frame. Headline and sub-headline are typed straight under each card. On

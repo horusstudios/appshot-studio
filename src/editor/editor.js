@@ -98,7 +98,12 @@ function clearPath(obj, path) {
 
 function write(path, value) {
   if (state.scope === 'frame') {
-    setPath(frame(), path, value);
+    // Linked frames are two halves of one picture: layout, background and device
+    // settings have to match or the seam stops lining up. Only the copy differs,
+    // and that is written elsewhere.
+    for (const k of groupMembers(state.project.frames, state.sel)) {
+      setPath(state.project.frames[k], path, value);
+    }
   } else {
     state.project.frames.forEach((f) => clearPath(f, path));
     setPath(state.project.defaults, path, value);
@@ -141,12 +146,7 @@ function drawGrid() {
             ${state.project.frames
               .map((f, i) => boardCard(f, i, loc, base, seamless))
               .join('')}
-            ${loc === base
-              ? `<div class="gaddwrap">
-                   <button class="gadd" id="gridAdd">+ Add screen</button>
-                   <button class="gadd" id="gridAddPair">+ Linked pair</button>
-                 </div>`
-              : ''}
+            ${loc === base ? '<button class="gadd" id="gridAdd">+ Add screen</button>' : ''}
           </div>
         </div>`
       )
@@ -297,8 +297,7 @@ $('#gridHost').addEventListener('input', (e) => {
 
 $('#gridHost').addEventListener('click', (e) => {
   if (justDragged) return;
-  if (e.target.id === 'gridAdd') { addEmptyFrames(1); return; }
-  if (e.target.id === 'gridAddPair') { addEmptyFrames(2, true); return; }
+  if (e.target.id === 'gridAdd') { openAddScreen(); return; }
   if (e.target.dataset.gdel !== undefined) { deleteFrame(+e.target.dataset.gdel); return; }
   if (e.target.dataset.gdrop !== undefined) {
     state.sel = +e.target.dataset.gdrop;
@@ -1192,7 +1191,7 @@ document.querySelectorAll('.scope button').forEach((b) => {
 });
 
 let pickTarget = 'new';
-$('#addFrame').onclick = () => addEmptyFrames(1);
+$('#addFrame').onclick = openAddScreen;
 
 $('#filePicker').onchange = async (e) => {
   const files = [...e.target.files];
@@ -1233,6 +1232,30 @@ function addEmptyFrames(count = 1, linked = false) {
   save(); paint(); buildInspector();
   if (!p.set) openPackGallery();
   else toast(linked ? 'Linked pair added — drop one image, both fill' : 'Empty frame added — drop an image on it');
+}
+
+function openAddScreen() {
+  openModal(
+    'Add a screen',
+    `<div class="addchoice">
+       <button data-add="1">
+         <b>Single screen</b>
+         <span>One screenshot on its own frame.</span>
+       </button>
+       <button data-add="pair">
+         <b>Linked pair</b>
+         <span>Two frames sharing one screenshot — the device is split down the
+           middle, half on each. Fill one and both fill; delete one and both go.</span>
+       </button>
+     </div>`
+  );
+  $('#modalBody').onclick = (e) => {
+    const b = e.target.closest('[data-add]');
+    if (!b) return;
+    closeModal();
+    if (b.dataset.add === 'pair') addEmptyFrames(2, true);
+    else addEmptyFrames(1);
+  };
 }
 
 // Linked frames are slices of one screenshot, so a drop fills every member.

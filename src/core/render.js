@@ -447,11 +447,23 @@ export function renderFrame({
   } else if (frame.role === 'cta') {
     devicesHTML = '';
   } else {
-    const specs = tpl.variants
+    // Linked frames on an ordinary template: there is no strip to draw across,
+    // so each frame draws the shared device shifted by half a canvas so the two
+    // halves meet exactly at the seam. Anything past the edge is clipped.
+    const [ga, gb] = groupRange(frames, i);
+    const span = gb - ga + 1;
+    const base = tpl.variants
       ? [deviceSpecFor(tpl, i, frame.role)]
       : tpl.devices.map((d) => (frame.role === 'cover' && tpl.cover && tpl.cover.device
           ? { ...d, ...tpl.cover.device }
           : d));
+    const specs = span > 1
+      ? [{
+          ...base[0],
+          x: (base[0].x ?? 0) + ((ga + gb + 1) / 2 - (i + 0.5)) * 100,
+          w: (base[0].w ?? 70) * (1 + (span - 1) * 0.42),
+        }]
+      : base;
     devicesHTML = specs
       .map((spec, k) =>
         renderDeviceEl({
