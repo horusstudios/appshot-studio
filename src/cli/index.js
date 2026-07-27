@@ -432,13 +432,13 @@ const help = `
     appshot set <project> --frames 8 --cta "Download free"    (last frame: CTA button)
     appshot icon <project> icon.png
     appshot order <project> 3,1,2
+    appshot rm <project> --frames 4
 
   [1mLocalization[0m
     appshot lang <project>                     (list languages)
     appshot lang <project> add tr
     appshot set <project> --lang de --frames all --titles "Eins|Zwei|Drei"
     appshot render <project> --locales en,tr   (out/<project>/<locale>/<device>/…)
-    appshot rm <project> --frames 4
 
   \x1b[1mStyling\x1b[0m  (no --frames = edit project defaults, applies to every frame)
     appshot style <project> [--frames all] [--template hero] [--bg "linear:160:#6366f1,#ec4899"]

@@ -60,6 +60,35 @@ appshot render my-app --frames 1-3 --open
 Output: `out/<project>/<device>/01-headline.png` — at the exact pixel size the App
 Store expects.
 
+### Every command
+
+`appshot --help` prints this too — keep the two in step when you add a command.
+
+```
+Projects      new <name> [--app] [--template] [--bg] [--devices]
+              ls · info <project>
+Packs         packs · pack <project> <pack-id>
+Content       blank <project> [count] [--pair]
+              add <project> <image…> [--titles "A|B"]
+              set <project> --frames <sel> [--title|--titles|--subtitle|--subtitles|--eyebrow]
+                  [--template] [--bg] [--shot <file> [--for <device>]]
+                  [--role feature|cover|cta] [--cta "Button label"] [--lang <locale>]
+              icon <project> <icon.png>          app icon, shown on a cover frame
+              order <project> 3,1,2              reorder frames
+              rm <project> --frames 4            delete frames
+Localization  lang <project> [add|rm|ls] <code>
+Styling       style <project> [--frames <sel>] [--template] [--bg] [--panorama]
+                  [--font] [--color] [--subtitle-color] [--title-size] [--title-weight]
+                  [--subtitle-size] [--align] [--uppercase] [--text-shadow]
+                  [--pattern] [--pattern-color] [--pattern-opacity] [--pattern-size]
+                  [--device-scale] [--device-x] [--device-y] [--rotate] [--shadow]
+                  [--frame-style]
+Export        render <project> [--devices] [--frames] [--locales] [--out] [--format] [--open]
+Reference     templates · backgrounds · devices · fonts · editor
+```
+
+`--frames` takes `all`, `2`, `1,3,5` or `1-3`. Frame numbers start at 1.
+
 ### Style packs (start here)
 
 A pack defines the background, the typography, the device settings **and the template
