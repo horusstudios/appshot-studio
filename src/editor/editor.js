@@ -132,19 +132,19 @@ function drawGrid() {
           <div class="bhead">
             <b>${loc}</b>
             <span class="${loc === base ? 'base' : ''}">${
-              loc === base ? 'ana dil' : localeLabel(loc)
+              loc === base ? 'base language' : localeLabel(loc)
             }</span>
-            ${loc === base ? '' : `<button data-rmlang="${loc}">kaldır</button>`}
+            ${loc === base ? '' : `<button data-rmlang="${loc}">remove</button>`}
           </div>
           <div class="bframes">
             ${state.project.frames
               .map((f, i) => boardCard(f, i, loc, base, seamless))
               .join('')}
-            ${loc === base ? '<button class="gadd" id="gridAdd">+ Ekran ekle</button>' : ''}
+            ${loc === base ? '<button class="gadd" id="gridAdd">+ Add screenshot</button>' : ''}
           </div>
         </div>`
       )
-      .join('') + `<button class="addlang" id="addLang">+ Dil ekle</button>`;
+      .join('') + `<button class="addlang" id="addLang">+ Add language</button>`;
 }
 
 function boardCard(f, i, loc, base, seamless) {
@@ -300,27 +300,27 @@ $('#gridHost').addEventListener('click', (e) => {
 function commitLanguage(code) {
   const clean = String(code || '').trim();
   if (!clean) return;
-  if (state.project.locales.includes(clean)) return toast('Bu dil zaten var');
+  if (state.project.locales.includes(clean)) return toast('That language is already here');
   state.project.locales.push(clean);
   state.locale = clean;
   save();
   closeModal();
   paint();
   buildInspector();
-  toast(`${localeLabel(clean)} eklendi — çevirileri satırdan doldur`);
+  toast(`${localeLabel(clean)} added — fill in the translations on its row`);
 }
 
 function addLanguage() {
   const used = new Set(state.project.locales);
   const items = Object.entries(COMMON_LOCALES).filter(([c]) => !used.has(c));
   openModal(
-    'Dil ekle',
+    'Add language',
     `<div class="langgrid">${items
       .map(([c, l]) => `<button data-lang="${c}"><b>${c}</b><span>${l}</span></button>`)
       .join('')}</div>
      <div class="row" style="margin-top:14px">
-       <input type="text" id="langCustom" placeholder="Listede yoksa kod yaz (ör. nb, zh-Hant)">
-       <button class="ghost" id="langAdd" style="flex:0 0 auto">Ekle</button>
+       <input type="text" id="langCustom" placeholder="Not listed? Type a code (e.g. nb, zh-Hant)">
+       <button class="ghost" id="langAdd" style="flex:0 0 auto">Add</button>
      </div>`
   );
   $('#modalBody').onclick = (e) => {
@@ -335,12 +335,12 @@ function addLanguage() {
 
 function removeLanguage(code) {
   openModal(
-    'Dili kaldır',
-    `<div class="cc-intro"><b>${code} — ${localeLabel(code)}</b> satırı ve bu dildeki
-      tüm çeviriler silinecek. Diğer diller etkilenmez.</div>
+    'Remove language',
+    `<div class="cc-intro"><b>${code} — ${localeLabel(code)}</b> row and every translation in
+      this language will be deleted. Other languages are untouched.</div>
      <div class="modal-actions">
-       <button class="danger" id="rmYes">Kaldır</button>
-       <button class="ghost" id="rmNo">Vazgeç</button>
+       <button class="danger" id="rmYes">Remove</button>
+       <button class="ghost" id="rmNo">Cancel</button>
      </div>`
   );
   $('#modalBody').onclick = (e) => {
@@ -400,7 +400,7 @@ function openPackGallery() {
     </div>`;
   }).join('');
 
-  openModal('Bir set seç', `<div class="packgal">${cards}</div>`);
+  openModal('Choose a set', `<div class="packgal">${cards}</div>`);
 
   $('#modalBody').onclick = (e) => {
     const card = e.target.closest('[data-pack]');
@@ -410,7 +410,7 @@ function openPackGallery() {
     closeModal();
     paint();
     buildInspector();
-    toast(`"${SETS[card.dataset.pack].name}" uygulandı`);
+    toast(`"${SETS[card.dataset.pack].name}" applied`);
   };
 }
 
@@ -453,46 +453,31 @@ function openTemplateGallery() {
 function openClaudePanel() {
   const n = state.name;
   const rows = [
-    [
-      'Bu projede neler var, göster',
-      `appshot info ${n}`,
-    ],
-    [
-      'Tüm başlıkları şu şekilde değiştir',
-      `appshot set ${n} --frames all \\\n  --titles "Konuşarak öğren|Maya ile pratik yap|İlerlemeni gör" \\\n  --subtitles "Kart değil gerçek sohbet|7/24 yapay zekâ öğretmen|Seri, dakika, seviye"`,
-    ],
-    [
-      '2. kareyi eğik yap, 3. kareye iki telefon koy',
-      `appshot set ${n} --frames 2 --template tilt-right\nappshot set ${n} --frames 3 --template duo`,
-    ],
-    [
-      'Tüm setin arkaplanını ve fontunu değiştir',
-      `appshot style ${n} --bg "linear:160:#6366f1,#ec4899" --font Poppins --title-size 6.3 --pattern dots`,
-    ],
-    [
-      'Yeni screenshot’ları ekle',
-      `appshot add ${n} ~/Desktop/shots/*.png`,
-    ],
-    [
-      'iPad için ayrı görsel kullan',
-      `appshot set ${n} --frames 1 --shot ~/Desktop/ipad-home.png --for ipad-13`,
-    ],
-    [
-      'Hepsini yeniden export et',
-      `appshot render ${n} --open`,
-    ],
-    [
-      'Sadece iPhone’u, ilk 3 kareyi ver',
-      `appshot render ${n} --devices iphone-6.9 --frames 1-3`,
-    ],
+    ['What is in this project?', `appshot info ${n}`],
+    ['Pick a ready-made look for the whole set',
+     `appshot packs\nappshot pack ${n} story-blocks`],
+    ['Rewrite every headline',
+     `appshot set ${n} --frames all \\\n  --titles "Learn by speaking|Practise with Maya|See your progress" \\\n  --subtitles "Real conversations, not flashcards|An AI tutor, 24/7|Streaks, minutes and levels"`],
+    ['Tilt frame 2, put two phones on frame 3',
+     `appshot set ${n} --frames 2 --template tilt-right\nappshot set ${n} --frames 3 --template duo`],
+    ['Change the background and type for the whole set',
+     `appshot style ${n} --bg "linear:160:#6366f1,#ec4899" --font Poppins --title-size 6.3 --pattern dots`],
+    ['Add another language',
+     `appshot lang ${n} add tr\nappshot set ${n} --lang tr --frames all --titles "Konuşarak öğren|Maya ile pratik|İlerlemeni gör"`],
+    ['Add new screenshots', `appshot add ${n} ~/Desktop/shots/*.png`],
+    ['Use a different image for iPad',
+     `appshot set ${n} --frames 1 --shot ~/Desktop/ipad-home.png --for ipad-13`],
+    ['Export everything', `appshot render ${n} --open`],
+    ['Export just iPhone, first three frames',
+     `appshot render ${n} --devices iphone-6.9 --frames 1-3`],
   ];
 
   const body =
     `<div class="cc-intro">
-       Claude Code'a <code>~/appshot-studio</code> klasöründe olduğunu söyle — oradaki
-       <code>CLAUDE.md</code> dosyasını okuyup bu komutları kendisi çalıştırır.
-       Yani aşağıdaki komutları ezberlemene gerek yok, <b>sol sütundaki gibi konuşman yeterli</b>.
-       Komutları kendin de çalıştırmak istersen sağdaki kopyala düğmesini kullan.
+       Tell Claude Code you are in <code>~/appshot-studio</code> — it reads the
+       <code>CLAUDE.md</code> there and runs these commands itself. So you never have to
+       memorise them: <b>just say what you want, like the left column below</b>.
+       Use the copy button if you would rather run a command yourself.
      </div>
      <div class="cc-cmd"><pre>cd ~/appshot-studio &amp;&amp; claude</pre><button data-copy="cd ~/appshot-studio &amp;&amp; claude">Copy</button></div>` +
     rows
@@ -505,7 +490,7 @@ function openClaudePanel() {
       )
       .join('');
 
-  openModal('Claude Code ile kullan', body);
+  openModal('Use it with Claude Code', body);
   $('#modalBody').onclick = async (e) => {
     const btn = e.target.closest('[data-copy]');
     if (!btn) return;
@@ -558,20 +543,20 @@ function buildInspector() {
     'Content',
     `<div class="mini">Text always applies to this frame. **bold** and line breaks work.</div>
      ${state.project.locales.length > 1
-       ? `<div class="row"><label>Dil</label><select data-loc>${state.project.locales
+       ? `<div class="row"><label>Language</label><select data-loc>${state.project.locales
            .map((l) => `<option value="${l}"${l === state.locale ? ' selected' : ''}>${l} — ${localeLabel(l)}</option>`)
            .join('')}</select></div>`
        : ''}
      <input type="text" data-frame="eyebrow" placeholder="Eyebrow (optional)" value="${escAttr(txt('eyebrow'))}">
      <textarea data-frame="title" placeholder="${escAttr(ph('title', 'Headline'))}">${escHtml(txt('title'))}</textarea>
      <textarea data-frame="subtitle" placeholder="${escAttr(ph('subtitle', 'Sub-headline'))}">${escHtml(txt('subtitle'))}</textarea>
-     <div class="row"><label>Rol</label><select data-role>
-       ${[['feature', 'Normal kare'], ['cover', 'Kapak (ilk kare)'], ['cta', 'CTA (son kare)']]
+     <div class="row"><label>Role</label><select data-role>
+       ${[['feature', 'Feature'], ['cover', 'Cover (first frame)'], ['cta', 'CTA (last frame)']]
          .map(([v, t]) => `<option value="${v}"${(f.role || 'feature') === v ? ' selected' : ''}>${t}</option>`)
          .join('')}
      </select></div>
-     ${f.role === 'cta' ? `<input type="text" data-frame="cta" placeholder="Buton yazısı" value="${escAttr(txt('cta'))}">` : ''}
-     ${f.role === 'cover' ? `<button class="ghost" id="pickIcon">Uygulama ikonu…${state.project.appIcon ? ' ✓' : ''}</button>` : ''}
+     ${f.role === 'cta' ? `<input type="text" data-frame="cta" placeholder="Button label" value="${escAttr(txt('cta'))}">` : ''}
+     ${f.role === 'cover' ? `<button class="ghost" id="pickIcon">App icon…${state.project.appIcon ? ' ✓' : ''}</button>` : ''}
      <button class="ghost" id="pickShot">Replace screenshot for ${DEVICES[state.device].label.split('(')[0].trim()}…</button>
      <div class="mini">${
        resolveScreenshots(f, state.device)[0]
@@ -745,7 +730,7 @@ $('#panels').addEventListener('input', (e) => {
     if (t.value === 'feature') delete frame().role;
     else {
       frame().role = t.value;
-      if (t.value === 'cta' && !frame().cta) frame().cta = 'Ücretsiz indir';
+      if (t.value === 'cta' && !frame().cta) frame().cta = 'Download free';
     }
     save(); paint(); buildInspector();
     return;
@@ -936,11 +921,11 @@ async function doExport() {
 
 $('#newProject').onclick = () => {
   openModal(
-    'Yeni proje',
-    `<div class="cc-intro">Proje adı klasör adı olur — harf, rakam ve tire kullan.</div>
+    'New project',
+    `<div class="cc-intro">The project name becomes its folder name — letters, digits and dashes.</div>
      <div class="row">
        <input type="text" id="npName" placeholder="fluenta">
-       <button class="primary" id="npGo" style="flex:0 0 auto">Oluştur</button>
+       <button class="primary" id="npGo" style="flex:0 0 auto">Create</button>
      </div>`
   );
   const go = async () => {
@@ -950,7 +935,7 @@ $('#newProject').onclick = () => {
     if (p.error) return toast(p.error);
     closeModal();
     await loadProjects(p.name);
-    toast(`"${p.name}" hazır — screenshot'ları sürükleyip bırak`);
+    toast(`"${p.name}" is ready — drop your screenshots in`);
   };
   $('#modalBody').onclick = (e) => { if (e.target.id === 'npGo') go(); };
   $('#npName').onkeydown = (e) => { if (e.key === 'Enter') go(); };
@@ -984,8 +969,17 @@ async function openProject(name) {
 }
 
 async function loadProjects(select) {
-  let list = await api.projects();
-  if (!list.length) { await api.create('demo'); list = await api.projects(); }
+  const list = await api.projects();
+  // No projects yet: ask for a name rather than silently inventing one.
+  if (!list.length) {
+    $('#projectSelect').innerHTML = '';
+    $('#panels').innerHTML = '<div class="body mini">Create a project to begin.</div>';
+    $('#frameList').innerHTML = '';
+    $('#canvasHost').innerHTML =
+      '<div style="color:#5b6072;padding:60px">No projects yet — create one to begin.</div>';
+    $('#newProject').click();
+    return;
+  }
   $('#projectSelect').innerHTML = list
     .map((p) => `<option value="${p.name}">${p.name}</option>`)
     .join('');

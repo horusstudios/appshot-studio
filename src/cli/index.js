@@ -142,17 +142,17 @@ commands.packs = () => {
   for (const id of SET_IDS) {
     const s = SETS[id];
     console.log(`  ${id.padEnd(16)} ${s.name.padEnd(18)} ${s.hint}`);
-    console.log(`  ${''.padEnd(16)} ${'sıra:'.padEnd(18)} ${s.sequence.join(' → ')}`);
+    console.log(`  ${''.padEnd(16)} ${'order:'.padEnd(18)} ${s.sequence.join(' → ')}`);
   }
 };
 
 commands.pack = (a) => {
-  const name = a._[0] || die('usage: appshot pack <project> <pack-id>   (appshot packs = liste)');
+  const name = a._[0] || die('usage: appshot pack <project> <pack-id>   (appshot packs = list them)');
   const setId = a._[1] || die(`give a pack id. Available: ${SET_IDS.join(', ')}`);
   const p = loadProject(name);
   applySet(p, setId);
   saveProject(name, p);
-  ok(`"${SETS[setId].name}" ${p.frames.length} kareye uygulandı`);
+  ok(`"${SETS[setId].name}" applied to ${p.frames.length} frame(s)`);
   p.frames.forEach((f, i) => console.log(`   ${String(i + 1).padStart(2)}. ${f.template}`));
 };
 
@@ -167,7 +167,7 @@ commands.set = (a) => {
 
   const base = baseLocale(p);
   const lang = typeof a.flags.lang === 'string' ? a.flags.lang : base;
-  if (!p.locales.includes(lang)) die(`"${lang}" bu projede yok — appshot lang ${name} add ${lang}`);
+  if (!p.locales.includes(lang)) die(`"${lang}" is not in this project — appshot lang ${name} add ${lang}`);
   const put = (f, field, v) => setLocalized(f, lang, base, field, v);
 
   idx.forEach((fi, k) => {
@@ -250,26 +250,26 @@ commands.style = (a) => {
 };
 
 commands.lang = (a) => {
-  const name = a._[0] || die('usage: appshot lang <project> [add|rm] <code>');
+  const name = a._[0] || die('usage: appshot lang <project> [add|rm|ls] <code>');
   const p = loadProject(name);
   const action = a._[1];
   if (!action || action === 'ls') {
     p.locales.forEach((l, i) =>
-      console.log(`  ${l.padEnd(10)} ${localeLabel(l)}${i === 0 ? '   (ana dil)' : ''}`)
+      console.log(`  ${l.padEnd(10)} ${localeLabel(l)}${i === 0 ? '   (base)' : ''}`)
     );
     return;
   }
   const code = a._[2] || die('give a locale code, e.g. tr, de, ja');
   if (action === 'add') {
-    if (p.locales.includes(code)) die(`"${code}" zaten var`);
+    if (p.locales.includes(code)) die(`"${code}" is already there`);
     p.locales.push(code);
   } else if (action === 'rm') {
-    if (p.locales[0] === code) die('ana dil silinemez');
+    if (p.locales[0] === code) die('the base language cannot be removed');
     p.locales = p.locales.filter((l) => l !== code);
     p.frames.forEach((f) => { if (f.l10n) delete f.l10n[code]; });
   } else die('action must be add, rm or ls');
   saveProject(name, p);
-  ok(`diller: ${p.locales.join(', ')}`);
+  ok(`languages: ${p.locales.join(', ')}`);
 };
 
 commands.icon = (a) => {
@@ -278,7 +278,7 @@ commands.icon = (a) => {
   const p = loadProject(name);
   p.appIcon = importImage(name, path.resolve(src));
   saveProject(name, p);
-  ok(`app icon set (kapak karesinde görünür) → ${p.appIcon}`);
+  ok(`app icon set (shows on the cover frame) → ${p.appIcon}`);
 };
 
 commands.order = (a) => {
@@ -377,7 +377,7 @@ const help = `
     appshot ls
     appshot info <project>
 
-  \x1b[1mStyle packs\x1b[0m  (önce bunu seç — tüm sete tek seferde tutarlı bir görünüm verir)
+  \x1b[1mStyle packs\x1b[0m  (start here — gives the whole set one consistent look)
     appshot packs
     appshot pack <project> panorama-flow
 
@@ -386,16 +386,16 @@ const help = `
     appshot set <project> --frames 1,3 --title "..." --subtitle "..." [--eyebrow "..."] [--template hero] [--bg sunset]
     appshot set <project> --frames all --titles "One|Two|Three"
     appshot set <project> --frames 1 --shot ~/Desktop/ipad-home.png --for ipad-13   (per-device screenshot)
-    appshot set <project> --frames 1 --role cover      (kapak karesi: ikon + büyük başlık)
-    appshot set <project> --frames 8 --cta "Ücretsiz indir"   (son kare: CTA butonu)
+    appshot set <project> --frames 1 --role cover      (cover frame: icon + big headline)
+    appshot set <project> --frames 8 --cta "Download free"    (last frame: CTA button)
     appshot icon <project> icon.png
     appshot order <project> 3,1,2
 
   [1mLocalization[0m
-    appshot lang <project>                     (dilleri listele)
+    appshot lang <project>                     (list languages)
     appshot lang <project> add tr
     appshot set <project> --lang tr --frames all --titles "Bir|İki|Üç"
-    appshot render <project> --locales en,tr   (out/<proje>/<dil>/<cihaz>/…)
+    appshot render <project> --locales en,tr   (out/<project>/<locale>/<device>/…)
     appshot rm <project> --frames 4
 
   \x1b[1mStyling\x1b[0m  (no --frames = edit project defaults, applies to every frame)

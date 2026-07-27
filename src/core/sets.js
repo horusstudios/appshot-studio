@@ -11,7 +11,7 @@ import { DEFAULT_TEXT, DEFAULT_DEVICE } from './render.js';
 export const SETS = {
   'bold-gradient': {
     name: 'Bold Gradient',
-    hint: 'Canlı mor-pembe geçiş, kalın beyaz başlık. En güvenli çok amaçlı set.',
+    hint: 'Vivid purple-to-pink gradient, heavy white headline. The safest all-rounder.',
     defaults: {
       background: { type: 'linear', angle: 160, stops: ['#6366f1', '#ec4899'] },
       text: {
@@ -25,7 +25,7 @@ export const SETS = {
 
   'clean-light': {
     name: 'Clean Light',
-    hint: 'Beyaz zemin, koyu metin. Üretkenlik ve finans uygulamaları için.',
+    hint: 'White ground, dark copy. For productivity and finance apps.',
     defaults: {
       background: { type: 'solid', color: '#f5f6f9' },
       text: {
@@ -40,7 +40,7 @@ export const SETS = {
 
   'panorama-flow': {
     name: 'Panorama Flow',
-    hint: 'Tüm set tek bir geniş görsel gibi akar — komşu ekranlar kenardan görünür.',
+    hint: 'The whole set flows as one wide image — neighbouring screens peek in.',
     defaults: {
       background: {
         type: 'mesh',
@@ -63,7 +63,7 @@ export const SETS = {
 
   'panorama-tilt': {
     name: 'Panorama Tilt',
-    hint: 'Eğik cihazlardan kesintisiz şerit. Oyun ve sosyal uygulamalarda çok iyi durur.',
+    hint: 'An unbroken ribbon of tilted devices. Great for games and social apps.',
     defaults: {
       background: { type: 'linear', angle: 115, stops: ['#0f172a', '#4c1d95', '#be185d'] },
       text: {
@@ -77,7 +77,7 @@ export const SETS = {
 
   'dark-pro': {
     name: 'Dark Pro',
-    hint: 'Siyah zemin, ince nokta deseni, çerçevesiz görsel. Araç ve geliştirici uygulamaları.',
+    hint: 'Black ground, fine dot pattern, bezel-free shots. For tools and developer apps.',
     defaults: {
       background: {
         type: 'solid', color: '#0b0b0f',
@@ -95,7 +95,7 @@ export const SETS = {
 
   'editorial-serif': {
     name: 'Editorial Serif',
-    hint: 'Krem zemin, serif başlık. Okuma, sağlık ve içerik uygulamaları için.',
+    hint: 'Cream ground, serif headline. For reading, health and content apps.',
     defaults: {
       background: { type: 'solid', color: '#f6f1e7' },
       text: {
@@ -110,7 +110,7 @@ export const SETS = {
 
   'soft-pastel': {
     name: 'Soft Pastel',
-    hint: 'Yumuşak pastel mesh, yuvarlak font. Çocuk, sağlık ve alışkanlık uygulamaları.',
+    hint: 'Soft pastel mesh, rounded type. For kids, wellbeing and habit apps.',
     defaults: {
       background: {
         type: 'mesh', base: '#fff7ed',
@@ -132,7 +132,7 @@ export const SETS = {
 
   'neon-night': {
     name: 'Neon Night',
-    hint: 'Koyu neon mesh, büyük harf başlık. Oyun ve eğlence.',
+    hint: 'Dark neon mesh, uppercase headline. Games and entertainment.',
     defaults: {
       background: {
         type: 'mesh', base: '#12081f',
@@ -154,7 +154,7 @@ export const SETS = {
 
   'full-immersive': {
     name: 'Full Immersive',
-    hint: 'Ekran görüntüsü tüm kareyi kaplar, metin üstte yüzer. Video ve foto uygulamaları.',
+    hint: 'The screenshot fills the frame, copy floats on top. Video and photo apps.',
     defaults: {
       background: { type: 'screenshot', blur: 70, dim: 0.35, scale: 1.5 },
       text: {
@@ -168,7 +168,7 @@ export const SETS = {
 
   'story-duo': {
     name: 'Story Duo',
-    hint: 'Çoklu cihaz ağırlıklı — özellikleri yan yana anlatmak için.',
+    hint: 'Multi-device heavy — for showing features side by side.',
     defaults: {
       background: { type: 'linear', angle: 160, stops: ['#0ea5e9', '#2563eb'] },
       text: {
@@ -197,8 +197,8 @@ const storyText = (over = {}) => ({
 
 Object.assign(SETS, {
   'story-blocks': {
-    name: 'Storyboard — Bloklar',
-    hint: 'Lime bloklar koyu teal üstünde kare sınırlarını keser. Ekranlar tek şerit gibi okunur.',
+    name: 'Storyboard — Blocks',
+    hint: 'Lime blocks cut across frame edges on deep teal. The screens read as one strip.',
     story: true,
     defaults: {
       background: {
@@ -216,8 +216,8 @@ Object.assign(SETS, {
   },
 
   'story-citrus': {
-    name: 'Storyboard — Sarı/Teal',
-    hint: 'Tam boy sarı ve teal paneller yarım kare kaymış şekilde akar.',
+    name: 'Storyboard — Citrus',
+    hint: 'Full-height yellow and teal panels, offset by half a frame.',
     story: true,
     defaults: {
       background: {
@@ -233,8 +233,8 @@ Object.assign(SETS, {
   },
 
   'story-organic': {
-    name: 'Storyboard — Organik',
-    hint: 'Turuncu ve koyu organik lekeler mavi zeminde akar; her 3. kare taşan cihazla kesilir.',
+    name: 'Storyboard — Organic',
+    hint: 'Orange and dark blobs drift over blue; every third frame is cut by a spanning device.',
     story: true,
     defaults: {
       background: {
@@ -250,8 +250,8 @@ Object.assign(SETS, {
   },
 
   'story-wave': {
-    name: 'Storyboard — Dalga',
-    hint: 'Hardal rengi tek bir dalga tüm seti kat eder, üstünde taşan cihazlar.',
+    name: 'Storyboard — Wave',
+    hint: 'A single mustard wave crosses the whole set, spanning devices riding on it.',
     story: true,
     defaults: {
       background: {
@@ -268,7 +268,7 @@ Object.assign(SETS, {
 
   'story-berry': {
     name: 'Storyboard — Berry',
-    hint: 'Bordo ve mor paneller; eşit cihaz sırası, tüm metinler üstte.',
+    hint: 'Crimson and purple panels; an even device row with all copy on top.',
     story: true,
     defaults: {
       background: {
@@ -284,8 +284,8 @@ Object.assign(SETS, {
   },
 
   'story-circles': {
-    name: 'Storyboard — Daireler',
-    hint: 'Metinlerin arkasına oturan büyük daireler; sakin, düzenli cihaz sırası.',
+    name: 'Storyboard — Circles',
+    hint: 'Large circles sitting behind the copy; a calm, even device row.',
     story: true,
     defaults: {
       background: {
@@ -334,7 +334,7 @@ export function applySet(project, setId) {
     if (set.cover && i === 0) f.role = 'cover';
     else if (set.cta && i === last && last > 1) {
       f.role = 'cta';
-      if (!f.cta) f.cta = 'Ücretsiz indir';
+      if (!f.cta) f.cta = 'Download free';
     } else delete f.role;
   });
   return project;

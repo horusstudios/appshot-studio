@@ -137,7 +137,7 @@ export const TEMPLATES = {
   // --- continuous: the set reads as ONE wide artwork sliced into screenshots ---
   'pano-flow': {
     name: 'Panorama — flow',
-    hint: 'Arkaplan tüm set boyunca akar; komşu ekranların cihazları kenardan görünür.',
+    hint: 'The background flows across the whole set; neighbouring devices peek in from the edges.',
     continuous: 'full',
     text: { y: 6, height: 22, align: 'center', width: 84, anchor: 'top' },
     devices: [{ w: 96, y: 36, x: 0, rotate: 0 }],
@@ -146,7 +146,7 @@ export const TEMPLATES = {
 
   'pano-tilt': {
     name: 'Panorama — tilt',
-    hint: 'Eğik cihazlardan oluşan kesintisiz şerit. Set halinde çok güçlü durur.',
+    hint: 'An unbroken ribbon of tilted devices. Very strong seen as a set.',
     continuous: 'full',
     text: { y: 6, height: 22, align: 'center', width: 84, anchor: 'top' },
     devices: [{ w: 106, y: 38, x: 0, rotate: -7 }],
@@ -154,8 +154,8 @@ export const TEMPLATES = {
   },
 
   'pano-hero': {
-    name: 'Panorama — sadece arkaplan',
-    hint: 'Cihazlar bağımsız, sadece arkaplan tüm set boyunca devam eder.',
+    name: 'Panorama — background only',
+    hint: 'Devices stand alone; only the background continues across the set.',
     continuous: 'background',
     text: { y: 6, height: 22, align: 'center', width: 86, anchor: 'top' },
     devices: [{ w: 66, y: 30, x: 0, rotate: 0 }],
@@ -164,8 +164,8 @@ export const TEMPLATES = {
 
   // --- storyboard strips: set 10 kareye yayılmış TEK kompozisyondur -----------
   'strip-blocks': {
-    name: 'Şerit — bloklar',
-    hint: 'Renk blokları kare sınırlarını keser, cihaz boyları ritim halinde değişir.',
+    name: 'Strip — blocks',
+    hint: 'Colour blocks cut across frame edges; device sizes shift in a rhythm.',
     continuous: 'full',
     text: { y: 6, height: 20, align: 'center', width: 82, anchor: 'top' },
     devices: [{ w: 68, y: 30, x: 0, rotate: 0 }],
@@ -196,8 +196,8 @@ export const TEMPLATES = {
   },
 
   'strip-cross': {
-    name: 'Şerit — taşan cihaz',
-    hint: 'Her üçüncü kare, iki ekrana birden yayılan büyük bir cihazla kesilir.',
+    name: 'Strip — spanning device',
+    hint: 'Every third frame is cut by an oversized device spanning two screenshots.',
     continuous: 'full',
     text: { y: 6, height: 20, align: 'center', width: 82, anchor: 'top' },
     devices: [{ w: 62, y: 26, x: 0, rotate: 0 }],
@@ -224,8 +224,8 @@ export const TEMPLATES = {
   },
 
   'strip-uniform': {
-    name: 'Şerit — düzenli',
-    hint: 'Eşit cihaz sırası, tüm metinler üstte. Arkaplan blokları akmaya devam eder.',
+    name: 'Strip — even',
+    hint: 'An even row of devices, all copy on top. The background blocks keep flowing.',
     continuous: 'full',
     text: { y: 6, height: 18, align: 'center', width: 84, anchor: 'top' },
     devices: [{ w: 66, y: 28, x: 0, rotate: 0 }],
