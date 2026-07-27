@@ -23,7 +23,7 @@ document.head.insertAdjacentHTML(
 const $ = (s) => document.querySelector(s);
 const state = {
   name: null, project: null, device: null, sel: 0,
-  scope: 'frame', zoom: 1, view: 'edit', locale: null,
+  scope: 'frame', zoom: 1, view: 'grid', locale: null, layer: 0,
 };
 
 const api = {
@@ -159,13 +159,14 @@ function boardCard(f, i, loc, base, seamless) {
     locale: loc,
   });
   const s = (146 * state.zoom) / width;
-  const on = i === state.sel && loc === state.locale;
+  const isSel = i === state.sel && loc === state.locale;
+  const all = state.scope === 'all';
   const title = getLocalized(f, loc, base, 'title');
   const subtitle = getLocalized(f, loc, base, 'subtitle');
   // On translation rows, show the base-language text as the placeholder.
   const ph = loc === base ? ['Headline', 'Sub-headline'] : [f.title || 'Headline', f.subtitle || 'Sub-headline'];
   return `<div class="bcell${seamless ? ' seam' : ''}">
-    <div class="gcard${on ? ' on' : ''}" data-i="${i}" data-loc="${loc}" style="width:${cardW}px;flex:0 0 ${cardW}px">
+    <div class="gcard${isSel ? ' on' : ''}${all ? ' all' : ''}" data-i="${i}" data-loc="${loc}" style="width:${cardW}px;flex:0 0 ${cardW}px">
       <div class="gshot" style="height:${height * s}px">
         <span class="gidx">${i + 1}</span>
         <span class="gtpl">${TEMPLATES[f.template || state.project.defaults.template].name}</span>
@@ -293,7 +294,15 @@ $('#gridHost').addEventListener('click', (e) => {
   if (!card) return;
   state.sel = +card.dataset.i;
   state.locale = card.dataset.loc;
-  document.querySelectorAll('.gcard').forEach((c) => c.classList.toggle('on', c === card));
+  if (state.scope === 'all') {
+    state.scope = 'frame';
+    document.querySelectorAll('.scope button').forEach((x) =>
+      x.classList.toggle('on', x.dataset.scope === 'frame')
+    );
+    paint();
+  } else {
+    document.querySelectorAll('.gcard').forEach((c) => c.classList.toggle('on', c === card));
+  }
   buildInspector();
 });
 
@@ -631,6 +640,39 @@ function buildInspector() {
        <button class="ghost" data-reset="device.rotate">Use template rotation</button>`
   );
 
+  // Stacked images. Always per-frame — "All frames" would stamp the same
+  // artwork on every screenshot, which is almost never what you want.
+  const layers = Array.isArray(f.layers) ? f.layers : [];
+  const li = Math.min(state.layer, layers.length - 1);
+  const sel = layers[li];
+  const layerPanel = sec(
+    'layers',
+    'Layers',
+    `<div class="mini">Images stacked on this frame — badges, logos, cut-outs.</div>
+     ${layers.length
+       ? `<div class="layerlist">${layers
+           .map(
+             (l, k) => `<div class="layeritem${k === li ? ' on' : ''}" data-layer="${k}">
+               <img src="${assetURL(l.src)}" alt="">
+               <span>${shotLabel(l.src)}</span>
+               <button data-layerup="${k}" title="Bring forward">↑</button>
+               <button data-layerdel="${k}" title="Delete">×</button>
+             </div>`
+           )
+           .join('')}</div>`
+       : ''}
+     <button class="ghost" id="addLayer">+ Add image layer</button>
+     ${sel
+       ? layerRange('Size', 'w', 3, 120, 0.5, sel.w ?? 26) +
+         layerRange('X', 'x', -60, 60, 0.5, sel.x ?? 0) +
+         layerRange('Y', 'y', -10, 110, 0.5, sel.y ?? 50) +
+         layerRange('Rotate', 'rotate', -180, 180, 1, sel.rotate ?? 0) +
+         layerRange('Opacity', 'opacity', 0, 1, 0.05, sel.opacity ?? 1) +
+         `<label class="chk"><input type="checkbox" data-layerbehind ${sel.behind ? 'checked' : ''}>Behind the device</label>`
+       : ''}`,
+    !layers.length
+  );
+
   const exportPanel = sec(
     'export',
     'Export',
@@ -640,12 +682,19 @@ function buildInspector() {
     true
   );
 
-  $('#panels').innerHTML = content + layout + text + bgPanel + devicePanel + exportPanel;
+  $('#panels').innerHTML =
+    content + layout + text + layerPanel + bgPanel + devicePanel + exportPanel;
 }
 
 const escHtml = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;');
 const escAttr = (s) => escHtml(s).replace(/"/g, '&quot;');
 const shotLabel = (s) => (typeof s === 'string' ? s : JSON.stringify(s)).replace('assets/', '');
+
+function layerRange(label, key, min, max, step, value) {
+  return `<div class="row"><label>${label}</label>
+    <input type="range" data-layerset="${key}" min="${min}" max="${max}" step="${step}" value="${value}">
+    <span class="val">${value}</span></div>`;
+}
 
 function rowSelectRaw(label, key, options, value) {
   return `<div class="row"><label>${label}</label><select data-raw="${key}">${options
@@ -726,6 +775,21 @@ $('#panels').addEventListener('input', (e) => {
     paint(); buildInspector();
     return;
   }
+  if (t.dataset.layerset !== undefined) {
+    const l = frame().layers[Math.min(state.layer, frame().layers.length - 1)];
+    if (l) {
+      l[t.dataset.layerset] = +t.value;
+      const val = t.parentElement.querySelector('.val');
+      if (val) val.textContent = t.value;
+      save(); paint();
+    }
+    return;
+  }
+  if (t.dataset.layerbehind !== undefined) {
+    const l = frame().layers[Math.min(state.layer, frame().layers.length - 1)];
+    if (l) { l.behind = t.checked; save(); paint(); }
+    return;
+  }
   if (t.dataset.role !== undefined) {
     if (t.value === 'feature') delete frame().role;
     else {
@@ -800,6 +864,25 @@ $('#panels').addEventListener('click', (e) => {
   if (t.dataset.bgp) { write('background', t.dataset.bgp); buildInspector(); return; }
   if (t.dataset.reset) { write(t.dataset.reset, null); buildInspector(); return; }
   if (t.id === 'browseTpl') { openTemplateGallery(); return; }
+  if (t.id === 'addLayer') { bgPickerTarget = 'layer'; $('#bgPicker').click(); return; }
+  if (t.dataset.layerdel !== undefined) {
+    frame().layers.splice(+t.dataset.layerdel, 1);
+    state.layer = 0;
+    save(); paint(); buildInspector();
+    return;
+  }
+  if (t.dataset.layerup !== undefined) {
+    const k = +t.dataset.layerup;
+    const ls = frame().layers;
+    if (k < ls.length - 1) {
+      [ls[k], ls[k + 1]] = [ls[k + 1], ls[k]];
+      state.layer = k + 1;
+      save(); paint(); buildInspector();
+    }
+    return;
+  }
+  const litem = t.closest('[data-layer]');
+  if (litem) { state.layer = +litem.dataset.layer; buildInspector(); return; }
   if (t.id === 'pickShot') { pickTarget = 'shot'; $('#filePicker').click(); return; }
   if (t.id === 'shotAll') {
     const cur = resolveScreenshots(frame(), state.device)[0];
@@ -816,6 +899,8 @@ document.querySelectorAll('.scope button').forEach((b) => {
   b.onclick = () => {
     document.querySelectorAll('.scope button').forEach((x) => x.classList.toggle('on', x === b));
     state.scope = b.dataset.scope;
+    // Repaint so the board shows what the next edit will hit.
+    paint();
   };
 });
 
@@ -836,6 +921,12 @@ $('#bgPicker').onchange = async (e) => {
   const { path } = await api.upload(state.name, file);
   if (bgPickerTarget === 'icon') {
     state.project.appIcon = path;
+    save(); paint();
+  } else if (bgPickerTarget === 'layer') {
+    const f = frame();
+    f.layers = f.layers || [];
+    f.layers.push({ src: path, x: 0, y: 50, w: 26, rotate: 0, opacity: 1 });
+    state.layer = f.layers.length - 1;
     save(); paint();
   } else {
     writeBG((bg) => { bg.type = 'image'; bg.src = path; });
@@ -956,7 +1047,14 @@ function buildDeviceTabs() {
 
 async function openProject(name) {
   state.name = name;
-  state.project = await api.load(name);
+  const p = await api.load(name);
+  // A project.json written by an older version can be missing newer fields.
+  // Fill them in here so a stale file can never take the whole editor down.
+  if (!Array.isArray(p.locales) || !p.locales.length) p.locales = ['en'];
+  if (!Array.isArray(p.devices) || !p.devices.length) p.devices = ['iphone-6.9', 'ipad-13'];
+  if (!Array.isArray(p.frames)) p.frames = [];
+  p.defaults = p.defaults || {};
+  state.project = p;
   state.sel = 0;
   state.device = state.project.devices[0];
   state.locale = state.project.locales[0];

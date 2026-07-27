@@ -124,12 +124,19 @@ The **This frame / All frames** switch at the top decides whether an edit lands 
 frame or on the whole project (the same idea as `--frames` in the CLI).
 Dropping PNGs on the window creates new frames.
 
-- **Edit / Grid** switch: Grid is the blueprint board — **one row per language**, one
+- **Grid / Edit** switch: Grid is the default — the blueprint board — **one row per language**, one
   column per frame. Headline and sub-headline are typed straight under each card. On
   translation rows the base-language text shows as the placeholder, and anything left
   empty falls back to the base. **+ Add language** at the end adds a row.
 - **Browse all templates visually…** (in the Template section): renders every template
   *using that frame's own screenshot and copy*; click to apply.
+- Clicking a card selects that frame (and drops out of All-frames scope, so the next
+  edit hits only it). With **All frames** active every card is outlined, because that
+  is what the next edit will change.
+- **Layers** section: stack extra images on a frame — badges, logos, cut-outs. Each
+  layer has size, x/y, rotation, opacity and a *behind the device* toggle. Layers are
+  per frame and shared across languages (`frame.layers[]`, see `DEFAULT_LAYER` in
+  `src/core/render.js`).
 - **✳ Claude Code** button: the commands for that project, ready to copy — the short
   version of this file.
 

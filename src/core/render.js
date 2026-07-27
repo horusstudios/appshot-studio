@@ -208,6 +208,26 @@ function renderDeviceEl({ cw, ch, spec, deviceCfg, dev, src, index, template, le
   </div>`;
 }
 
+// Free-floating images stacked on a frame — badges, logos, arrows, cut-outs.
+// `behind: true` puts one under the device instead of over it.
+export const DEFAULT_LAYER = { x: 0, y: 50, w: 26, rotate: 0, opacity: 1, behind: false };
+
+function renderLayers(frame, assetURL) {
+  const layers = frame.layers;
+  if (!Array.isArray(layers) || !layers.length) return '';
+  return layers
+    .map((raw) => {
+      const l = { ...DEFAULT_LAYER, ...raw };
+      if (!l.src) return '';
+      return `<img class="ash-layer" src="${esc(assetURL(l.src))}" alt="" style="
+        left:${50 + l.x}%;top:${l.y}%;width:${l.w}%;
+        transform:translate(-50%,-50%) rotate(${l.rotate}deg);
+        opacity:${l.opacity};
+        z-index:${l.behind ? 1 : 6};">`;
+    })
+    .join('');
+}
+
 function renderTextEl({ cw, ch, frame, text, tpl, tSpec, project, assetURL }) {
   const title = frame.title ?? '';
   const subtitle = frame.subtitle ?? '';
@@ -429,6 +449,7 @@ export function renderFrame({
     ${ovCSS ? `<div class="ash-pattern" style="${ovCSS}"></div>` : ''}
     ${scrim}
     <div class="ash-stage" style="${cont === 'full' ? stripStyle : ''}">${devicesHTML}</div>
+    ${renderLayers(frame, assetURL)}
     ${renderTextEl({
       cw, ch, frame, text, tpl,
       tSpec: textSpecFor(tpl, i, frame.role),
@@ -465,5 +486,6 @@ export const CANVAS_CSS = `
 .ash-cam{background:#15151c;box-shadow:inset 0 0 0 1px rgba(255,255,255,.08);}
 .ash-homebar{position:absolute;left:50%;transform:translateX(-50%);background:rgba(255,255,255,.85);border-radius:999px;z-index:3;}
 .ash-text{position:absolute;z-index:5;}
+.ash-layer{position:absolute;height:auto;pointer-events:none;}
 .ash-title b,.ash-subtitle b{font-weight:900;}
 `;
