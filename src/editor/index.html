@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AppShot Studio</title>
+<link rel="stylesheet" href="/src/editor/editor.css">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">AppShot<span>Studio</span></div>
+
+    <div class="group">
+      <select id="projectSelect" title="Project"></select>
+      <button id="newProject" class="ghost" title="New project">+</button>
+    </div>
+
+    <div id="deviceTabs" class="tabs"></div>
+
+    <div class="spacer"></div>
+
+    <div class="group">
+      <label class="zoom">Zoom<input id="zoom" type="range" min="20" max="140" value="100"></label>
+      <button id="revealBtn" class="ghost">Folder</button>
+      <button id="renderBtn" class="primary">Export all</button>
+    </div>
+  </header>
+
+  <main>
+    <aside class="filmstrip">
+      <div id="frameList"></div>
+      <button id="addFrame" class="addframe">+ Add screenshot</button>
+      <div class="hint">Drop PNGs anywhere</div>
+    </aside>
+
+    <section class="stage" id="stage">
+      <div class="stage-inner"><div id="canvasHost"></div></div>
+      <div id="dropHint" class="drophint">Drop screenshots here</div>
+    </section>
+
+    <aside class="inspector">
+      <div class="scope">
+        <button data-scope="frame" class="on">This frame</button>
+        <button data-scope="all">All frames</button>
+      </div>
+      <div id="panels"></div>
+    </aside>
+  </main>
+
+  <div id="toast" class="toast"></div>
+  <input type="file" id="filePicker" accept="image/*" multiple hidden>
+  <input type="file" id="bgPicker" accept="image/*" hidden>
+
+  <script type="module" src="/src/editor/editor.js"></script>
+</body>
+</html>

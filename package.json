@@ -1,0 +1,17 @@
+{
+  "name": "appshot-studio",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "App Store / Google Play screenshot studio — visual editor + CLI batch renderer",
+  "bin": {
+    "appshot": "./src/cli/index.js"
+  },
+  "scripts": {
+    "editor": "node src/cli/index.js editor",
+    "render": "node src/cli/index.js render"
+  },
+  "dependencies": {
+    "playwright-core": "^1.49.0"
+  }
+}
