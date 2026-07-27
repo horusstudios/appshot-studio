@@ -3,7 +3,7 @@
 Generate App Store and Google Play screenshots. Drop in a screenshot, pick a style
 pack, write the copy, get PNGs at every required device size.
 
-A visual editor **plus** a CLI you can drive from Claude Code. Both use the same render
+A visual editor **plus** a CLI any coding agent can drive. Both use the same render
 engine (`src/core/render.js`), so what you see in the editor is byte-for-byte what gets
 exported.
 
@@ -71,17 +71,21 @@ Drop PNGs anywhere on the window to add frames.
 **Grid** view is a blueprint board — one row per language, one column per frame — so
 you can see and edit the entire set, in every language, at once.
 
-## Driving it from Claude Code
+## Driving it from a coding agent
 
-`CLAUDE.md` documents the CLI so an agent can do batch edits without hand-editing JSON:
+There is no AI dependency here — it is a plain Node CLI, so anything that can run shell
+commands works: Claude Code, Codex, Cursor, Gemini CLI, Aider, or a script of your own.
+
+`AGENTS.md` documents the CLI so an agent can do batch edits without hand-editing JSON.
+`CLAUDE.md` just points at it, so both conventions resolve to the same file.
 
 ```
-cd appshot-studio && claude
+cd appshot-studio && claude      # or: codex, cursor-agent, …
 > rewrite all the headlines and export just the iPhone sizes
 ```
 
 The editor also has a **Claude Code** button that shows the equivalent commands for the
-open project, ready to copy.
+open project, ready to copy — they are ordinary shell commands, so paste them anywhere.
 
 ## Licence
 
