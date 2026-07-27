@@ -82,8 +82,13 @@ main { flex: 1; display: grid; grid-template-columns: auto 1fr 320px; min-height
 .addframe:hover { border-color: var(--accent); color: var(--text); }
 .filmstrip .hint { color: #5b6072; font-size: 11px; text-align: center; }
 
-.stage { position: relative; overflow: auto; display: grid; place-items: center; padding: 24px; }
-.stage-inner { display: grid; place-items: center; }
+/* `safe center` şart: normal center'da büyütülen kanvasın taşan üst/sol kısmı
+   kırpılıp scroll ile erişilemez hale geliyor. */
+.stage {
+  position: relative; overflow: auto; padding: 24px;
+  display: flex; justify-content: safe center; align-items: safe center;
+}
+.stage-inner { margin: auto; }
 #canvasHost { transform-origin: center center; }
 #canvasHost .ash-canvas { border-radius: 4px; box-shadow: 0 24px 70px rgba(0,0,0,.6); }
 .drophint {
@@ -242,6 +247,17 @@ button.packs:hover { filter: brightness(1.12); }
 .packcard .meta span { color: var(--muted); font-size: 12px; line-height: 1.4; }
 .packcard .meta em { display: block; color: #5b6072; font-size: 11px; font-style: normal; margin-top: 4px; }
 .pack-note { color: var(--muted); margin-bottom: 14px; line-height: 1.6; }
+
+.langgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(148px, 1fr)); gap: 8px; }
+.langgrid button {
+  display: flex; align-items: baseline; gap: 8px; padding: 9px 11px; text-align: left;
+  border: 1px solid var(--line); border-radius: 9px; background: var(--panel2);
+}
+.langgrid button:hover { border-color: var(--accent); background: rgba(99,102,241,.14); }
+.langgrid b { font-size: 12px; text-transform: uppercase; letter-spacing: .05em; }
+.langgrid span { color: var(--muted); font-size: 12px; }
+.modal-actions { display: flex; gap: 8px; margin-top: 14px; }
+.modal-actions .danger { background: #b91c1c; color: #fff; border-radius: 8px; padding: 7px 15px; font-weight: 600; }
 
 .cc-intro { color: var(--muted); margin-bottom: 16px; line-height: 1.6; }
 .cc-intro code { background: var(--panel2); padding: 2px 6px; border-radius: 5px; color: var(--text); }

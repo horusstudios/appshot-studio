@@ -148,6 +148,7 @@ function drawGrid() {
 }
 
 function boardCard(f, i, loc, base, seamless) {
+  const cardW = Math.round(150 * state.zoom);
   const { html, width, height } = renderFrame({
     frame: f,
     project: state.project,
@@ -157,14 +158,14 @@ function boardCard(f, i, loc, base, seamless) {
     index: i,
     locale: loc,
   });
-  const s = 146 / width;
+  const s = (146 * state.zoom) / width;
   const on = i === state.sel && loc === state.locale;
   const title = getLocalized(f, loc, base, 'title');
   const subtitle = getLocalized(f, loc, base, 'subtitle');
   // Çeviri satırlarında ana dildeki metni placeholder olarak göster.
   const ph = loc === base ? ['Headline', 'Sub-headline'] : [f.title || 'Headline', f.subtitle || 'Sub-headline'];
   return `<div class="bcell${seamless ? ' seam' : ''}">
-    <div class="gcard${on ? ' on' : ''}" data-i="${i}" data-loc="${loc}">
+    <div class="gcard${on ? ' on' : ''}" data-i="${i}" data-loc="${loc}" style="width:${cardW}px;flex:0 0 ${cardW}px">
       <div class="gshot" style="height:${height * s}px">
         <span class="gidx">${i + 1}</span>
         <span class="gtpl">${TEMPLATES[f.template || state.project.defaults.template].name}</span>
@@ -265,7 +266,7 @@ function refreshGridCard(i, loc) {
     index: i,
     locale: loc,
   });
-  const s = 206 / width;
+  const s = (146 * state.zoom) / width; // boardCard ile aynı ölçek
   card.querySelector('.gshot').style.height = height * s + 'px';
   card.querySelector('.tw').style.transform = `scale(${s})`;
   card.querySelector('.tw').innerHTML = html;
@@ -287,15 +288,7 @@ $('#gridHost').addEventListener('input', (e) => {
 $('#gridHost').addEventListener('click', (e) => {
   if (e.target.id === 'gridAdd') { pickTarget = 'new'; $('#filePicker').click(); return; }
   if (e.target.id === 'addLang') { addLanguage(); return; }
-  if (e.target.dataset.rmlang) {
-    const code = e.target.dataset.rmlang;
-    if (!confirm(`"${code}" dili ve çevirileri silinsin mi?`)) return;
-    state.project.locales = state.project.locales.filter((l) => l !== code);
-    state.project.frames.forEach((f) => { if (f.l10n) delete f.l10n[code]; });
-    if (state.locale === code) state.locale = state.project.locales[0];
-    save(); paint(); buildInspector();
-    return;
-  }
+  if (e.target.dataset.rmlang) { removeLanguage(e.target.dataset.rmlang); return; }
   const card = e.target.closest('.gcard');
   if (!card) return;
   state.sel = +card.dataset.i;
@@ -304,25 +297,66 @@ $('#gridHost').addEventListener('click', (e) => {
   buildInspector();
 });
 
-function addLanguage() {
-  const used = new Set(state.project.locales);
-  const options = Object.keys(COMMON_LOCALES).filter((c) => !used.has(c));
-  const code = prompt(
-    `Dil kodu (ör. ${options.slice(0, 6).join(', ')})`,
-    options[0] || ''
-  );
-  if (!code) return;
-  const clean = code.trim();
-  if (!clean || used.has(clean)) return toast('Bu dil zaten var');
+function commitLanguage(code) {
+  const clean = String(code || '').trim();
+  if (!clean) return;
+  if (state.project.locales.includes(clean)) return toast('Bu dil zaten var');
   state.project.locales.push(clean);
   state.locale = clean;
-  save(); paint(); buildInspector();
+  save();
+  closeModal();
+  paint();
+  buildInspector();
   toast(`${localeLabel(clean)} eklendi — çevirileri satırdan doldur`);
+}
+
+function addLanguage() {
+  const used = new Set(state.project.locales);
+  const items = Object.entries(COMMON_LOCALES).filter(([c]) => !used.has(c));
+  openModal(
+    'Dil ekle',
+    `<div class="langgrid">${items
+      .map(([c, l]) => `<button data-lang="${c}"><b>${c}</b><span>${l}</span></button>`)
+      .join('')}</div>
+     <div class="row" style="margin-top:14px">
+       <input type="text" id="langCustom" placeholder="Listede yoksa kod yaz (ör. nb, zh-Hant)">
+       <button class="ghost" id="langAdd" style="flex:0 0 auto">Ekle</button>
+     </div>`
+  );
+  $('#modalBody').onclick = (e) => {
+    const b = e.target.closest('[data-lang]');
+    if (b) return commitLanguage(b.dataset.lang);
+    if (e.target.id === 'langAdd') commitLanguage($('#langCustom').value);
+  };
+  $('#langCustom').onkeydown = (e) => {
+    if (e.key === 'Enter') commitLanguage(e.target.value);
+  };
+}
+
+function removeLanguage(code) {
+  openModal(
+    'Dili kaldır',
+    `<div class="cc-intro"><b>${code} — ${localeLabel(code)}</b> satırı ve bu dildeki
+      tüm çeviriler silinecek. Diğer diller etkilenmez.</div>
+     <div class="modal-actions">
+       <button class="danger" id="rmYes">Kaldır</button>
+       <button class="ghost" id="rmNo">Vazgeç</button>
+     </div>`
+  );
+  $('#modalBody').onclick = (e) => {
+    if (e.target.id === 'rmNo') return closeModal();
+    if (e.target.id !== 'rmYes') return;
+    state.project.locales = state.project.locales.filter((l) => l !== code);
+    state.project.frames.forEach((f) => { if (f.l10n) delete f.l10n[code]; });
+    if (state.locale === code) state.locale = state.project.locales[0];
+    save(); closeModal(); paint(); buildInspector();
+  };
 }
 
 // ---------------------------------------------------------------- modal
 function openModal(title, html) {
   $('#modalTitle').textContent = title;
+  $('#modalBody').onclick = null;
   $('#modalBody').innerHTML = html;
   $('#modal').hidden = false;
 }
@@ -868,7 +902,12 @@ document.addEventListener('drop', async (e) => {
 });
 
 // topbar
-$('#zoom').oninput = (e) => { state.zoom = +e.target.value / 100; drawCanvas(); };
+$('#zoom').oninput = (e) => {
+  state.zoom = +e.target.value / 100;
+  // Board görünümünde kart genişliği değiştiği için tam yeniden çizim gerekiyor.
+  if (state.view === 'grid') { $('#gridHost').innerHTML = ''; drawGrid(); }
+  else drawCanvas();
+};
 $('#claudeBtn').onclick = openClaudePanel;
 $('#packsBtn').onclick = openPackGallery;
 document.querySelectorAll('#viewTabs button').forEach((b) => {
@@ -895,12 +934,27 @@ async function doExport() {
   }
 }
 
-$('#newProject').onclick = async () => {
-  const name = prompt('Project name (e.g. fluenta)');
-  if (!name) return;
-  const p = await api.create(name);
-  if (p.error) return toast(p.error);
-  await loadProjects(p.name);
+$('#newProject').onclick = () => {
+  openModal(
+    'Yeni proje',
+    `<div class="cc-intro">Proje adı klasör adı olur — harf, rakam ve tire kullan.</div>
+     <div class="row">
+       <input type="text" id="npName" placeholder="fluenta">
+       <button class="primary" id="npGo" style="flex:0 0 auto">Oluştur</button>
+     </div>`
+  );
+  const go = async () => {
+    const name = $('#npName').value.trim();
+    if (!name) return;
+    const p = await api.create(name);
+    if (p.error) return toast(p.error);
+    closeModal();
+    await loadProjects(p.name);
+    toast(`"${p.name}" hazır — screenshot'ları sürükleyip bırak`);
+  };
+  $('#modalBody').onclick = (e) => { if (e.target.id === 'npGo') go(); };
+  $('#npName').onkeydown = (e) => { if (e.key === 'Enter') go(); };
+  $('#npName').focus();
 };
 
 $('#projectSelect').onchange = (e) => openProject(e.target.value);
