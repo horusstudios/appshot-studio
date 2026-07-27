@@ -54,6 +54,13 @@ store expects (iPhone 6.9" 1290×2796, iPad 13" 2064×2752, Play 1080×1920 …)
   (blocks, blobs, waves, circles) drawn across the entire set.
 - **Pure-CSS device frames** — Dynamic Island, notch, iPad, Android punch-hole. No
   external assets, sharp at any scale.
+- **Layers** — stack images, text and emoji on any frame. Drag to move, round handle
+  to rotate, square one to resize, ⌘C/⌘V to copy a layer onto another frame or onto
+  every frame at once.
+- **Linked frames** — two frames sharing one screenshot, with the device split down
+  the seam so half lands on each. Fill one and both fill; delete one and both go.
+- **Panoramic backgrounds** — stretch a single wide image, gradient or mesh across the
+  whole set, each frame showing its own slice.
 - **Localization** — add a language and it appears as a new row on the board. Only
   text and screenshots vary per language; the layout is shared. Exports go to
   `out/<project>/<locale>/<device>/`.
@@ -64,12 +71,15 @@ store expects (iPhone 6.9" 1290×2796, iPad 13" 2064×2752, Play 1080×1920 …)
 
 ## Editor
 
-Left: frame strip · Middle: live preview · Right: inspector. The **This frame / All
-frames** switch decides whether an edit lands on one frame or the whole project.
-Drop PNGs anywhere on the window to add frames.
+**Grid** is the default view: a blueprint board with one row per language and one
+column per frame, so you can see and edit the whole set, in every language, at once.
+**Edit** gives you a single large canvas instead. The **This frame / All frames**
+switch decides whether an edit lands on one frame or the whole project.
 
-**Grid** view is a blueprint board — one row per language, one column per frame — so
-you can see and edit the entire set, in every language, at once.
+Add a screen and you get an empty frame with a placeholder — lay the set out first
+and fill the images in later, by clicking a placeholder or dropping a file on it.
+Click the screenshot or the background of the selected frame to swap it, and drag the
+headline or any layer straight on the canvas.
 
 ## Driving it from a coding agent
 
