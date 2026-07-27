@@ -295,8 +295,32 @@ $('#gridHost').addEventListener('input', (e) => {
   refreshGridCard(+i, loc);
 });
 
+// Clicking the screen or the background of the frame you already have selected
+// swaps that image. The first click just selects, so a click never surprises you
+// with a file dialog.
+function replaceClick(e) {
+  if (justDragged) return false;
+  const card = e.target.closest('.gcard');
+  const fi = card ? +card.dataset.i : state.sel;
+  if (card && (fi !== state.sel || card.dataset.loc !== state.locale)) return false;
+  if (e.target.closest('.ash-screen') || e.target.closest('.ash-bleed')) {
+    pickTarget = 'shot';
+    $('#filePicker').click();
+    return true;
+  }
+  if (e.target.classList.contains('ash-bg')) {
+    bgPickerTarget = 'bg';
+    $('#bgPicker').click();
+    return true;
+  }
+  return false;
+}
+
+$('#canvasHost').addEventListener('click', (e) => { replaceClick(e); });
+
 $('#gridHost').addEventListener('click', (e) => {
   if (justDragged) return;
+  if (replaceClick(e)) return;
   if (e.target.id === 'gridAdd') { openAddScreen(); return; }
   if (e.target.dataset.gdel !== undefined) { deleteFrame(+e.target.dataset.gdel); return; }
   if (e.target.dataset.gdrop !== undefined) {
@@ -503,6 +527,30 @@ window.addEventListener('scroll', positionHandles, true);
 window.addEventListener('resize', positionHandles);
 
 document.addEventListener('mousedown', (e) => {
+  // Headline block: dragging it writes a per-frame position that overrides the
+  // template. Measured from the DOM, so it works whatever the template anchored to.
+  const textEl = e.target.closest('.ash-text');
+  if (textEl && !e.target.closest('.ash-layer')) {
+    const canvas = textEl.closest('.ash-canvas');
+    const card = textEl.closest('.gcard');
+    if (card && card.dataset.loc !== state.locale) return;
+    const fi = card ? +card.dataset.i : state.sel;
+    if (!canvas || !state.project.frames[fi]) return;
+    e.preventDefault();
+    state.sel = fi;
+    const cr = canvas.getBoundingClientRect();
+    const tr = textEl.getBoundingClientRect();
+    drag = {
+      mode: 'text', el: textEl, rect: cr, moved: false,
+      sx: e.clientX, sy: e.clientY,
+      x0: ((tr.left + tr.width / 2 - (cr.left + cr.width / 2)) / cr.width) * 100,
+      y0: ((tr.top - cr.top) / cr.height) * 100,
+    };
+    document.body.classList.add('dragging-move');
+    buildInspector();
+    return;
+  }
+
   const handle = e.target.closest('#layerHandles .lh');
   const el = handle ? selectedLayerEl() : e.target.closest('.ash-layer');
   if (!el) return;
@@ -544,6 +592,18 @@ document.addEventListener('mousedown', (e) => {
 
 window.addEventListener('mousemove', (e) => {
   if (!drag) return;
+  if (drag.mode === 'text') {
+    if (Math.abs(e.clientX - drag.sx) > 2 || Math.abs(e.clientY - drag.sy) > 2) drag.moved = true;
+    const f = state.project.frames[state.sel];
+    f.text = f.text || {};
+    f.text.x = round1(drag.x0 + ((e.clientX - drag.sx) / drag.rect.width) * 100);
+    f.text.y = round1(drag.y0 + ((e.clientY - drag.sy) / drag.rect.height) * 100);
+    f.text.anchor = 'top';
+    drag.el.style.left = `${50 + f.text.x}%`;
+    drag.el.style.top = `${f.text.y}%`;
+    drag.el.style.bottom = 'auto';
+    return;
+  }
   const l = drag.layer;
   if (Math.abs(e.clientX - drag.sx) > 2 || Math.abs(e.clientY - drag.sy) > 2) drag.moved = true;
 
@@ -772,7 +832,12 @@ function buildInspector() {
   const content = sec(
     'content',
     'Content',
-    `<div class="mini">Text always applies to this frame. **bold** and line breaks work.</div>
+    `<div class="mini">Text always applies to this frame. **bold** and line breaks work.
+       Drag the headline on the canvas to move it; click the screenshot or the
+       background to swap the image.</div>
+     ${f.text && (f.text.x !== undefined || f.text.y !== undefined)
+       ? '<button class="ghost" id="resetTextPos">Reset headline position</button>'
+       : ''}
      ${state.project.locales.length > 1
        ? `<div class="row"><label>Language</label><select data-loc>${state.project.locales
            .map((l) => `<option value="${l}"${l === state.locale ? ' selected' : ''}>${l} — ${localeLabel(l)}</option>`)
@@ -829,7 +894,8 @@ function buildInspector() {
   const bgPanel = sec(
     'bg',
     'Background',
-    `<div class="swatches">${BACKGROUND_PRESET_IDS.map(
+    `<button class="primary" id="addBgImage">+ Add background image</button>
+     <div class="swatches">${BACKGROUND_PRESET_IDS.map(
       (id) =>
         `<button class="swatch${bgIsPreset && eff('background') === id ? ' on' : ''}" data-bgp="${id}" title="${id}" style="${swatchStyle(id)}"></button>`
     ).join('')}</div>` +
@@ -1189,6 +1255,21 @@ $('#panels').addEventListener('click', (e) => {
     return;
   }
   if (t.id === 'pickBg') { bgPickerTarget = 'bg'; $('#bgPicker').click(); return; }
+  if (t.id === 'resetTextPos') {
+    for (const k of groupMembers(state.project.frames, state.sel)) {
+      const ft = state.project.frames[k].text;
+      if (ft) { delete ft.x; delete ft.y; delete ft.anchor; }
+    }
+    save(); paint(); buildInspector();
+    return;
+  }
+  if (t.id === 'addBgImage') {
+    // Only ask for the file — the picker switches the type once one is chosen,
+    // so cancelling does not leave an image background with no image.
+    bgPickerTarget = 'bg';
+    $('#bgPicker').click();
+    return;
+  }
   if (t.id === 'pickIcon') { bgPickerTarget = 'icon'; $('#bgPicker').click(); return; }
   if (t.id === 'exportNow') doExport();
 });

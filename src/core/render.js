@@ -512,7 +512,14 @@ export function renderFrame({
     ${renderLayers(frame, assetURL, cw)}
     ${renderTextEl({
       cw, ch, frame, text, tpl,
-      tSpec: textSpecFor(tpl, i, frame.role),
+      // A dragged headline overrides wherever the template put it.
+      tSpec: (() => {
+        const t = textSpecFor(tpl, i, frame.role);
+        if (text.x !== undefined && text.x !== null) t.x = text.x;
+        if (text.y !== undefined && text.y !== null) { t.y = text.y; t.anchor = 'top'; }
+        if (text.anchor) t.anchor = text.anchor;
+        return t;
+      })(),
       project, assetURL,
     })}
   </div>`;

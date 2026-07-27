@@ -188,6 +188,12 @@ input[type="color"] {
   width: 100%; margin-top: 6px; font-size: 12px; padding: 5px 8px;
 }
 .gcard input.gsub { color: var(--muted); }
+/* The selected frame advertises that its screen and background are swappable. */
+#canvasHost .ash-screen, #canvasHost .ash-bg, #canvasHost .ash-bleed,
+.gcard.on .ash-screen, .gcard.on .ash-bg, .gcard.on .ash-bleed { cursor: pointer; }
+#canvasHost .ash-text, .gcard.on .ash-text { cursor: grab; }
+body.dragging-move .ash-text { cursor: grabbing; }
+
 .addchoice { display: grid; gap: 10px; }
 .addchoice button {
   display: block; text-align: left; padding: 14px 16px; background: var(--panel2);

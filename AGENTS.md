@@ -172,6 +172,12 @@ can lay the whole set out before you have the images.
   column per frame. Headline and sub-headline are typed straight under each card. On
   translation rows the base-language text shows as the placeholder, and anything left
   empty falls back to the base. **+ Add language** at the end adds a row.
+- **Drag the headline** on the canvas to move it. That writes `text.x` / `text.y` on
+  the frame, overriding wherever the template put it; **Reset headline position** in
+  the Content section clears it again.
+- **Click the screenshot or the background** of the frame you already have selected to
+  swap that image. The first click only selects, so a click never springs a file
+  dialog on you. The Background section also has a **+ Add background image** button.
 - **Browse all templates visually…** (in the Template section): renders every template
   *using that frame's own screenshot and copy*; click to apply.
 - Clicking a card selects that frame (and drops out of All-frames scope, so the next
