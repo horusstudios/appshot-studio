@@ -364,6 +364,53 @@ function removeLanguage(code) {
   };
 }
 
+const curLayer = () => {
+  const ls = frame()?.layers;
+  return ls && ls.length ? ls[Math.min(state.layer, ls.length - 1)] : null;
+};
+
+function addLayer(props) {
+  const f = frame();
+  if (!f) return toast('Select a frame first');
+  f.layers = f.layers || [];
+  f.layers.push({ x: 0, y: 50, size: 26, rotate: 0, opacity: 1, ...props });
+  state.layer = f.layers.length - 1;
+  save(); paint(); buildInspector(); markSelectedLayer();
+}
+
+const EMOJI = [
+  '⭐','✨','🔥','💎','🚀','🎯','❤️','👍','🏆','🎉','💡','⚡','✅','🔔','📈','🧠',
+  '🎁','🥇','🛡️','🔒','⏱️','📅','💬','📷','🎧','🎬','🍀','🌙','☀️','🌈','🎨','🧩',
+  '💰','📊','🤖','👋','😍','😎','🤩','🙌','👀','💪','🍎','🥗','🏃','😴','📚','✏️',
+];
+
+function openEmojiPicker(replace = false) {
+  openModal(
+    'Pick an emoji',
+    `<div class="emojigrid">${EMOJI.map((e) => `<button data-emoji="${e}">${e}</button>`).join('')}</div>
+     <div class="row" style="margin-top:14px">
+       <input type="text" id="emojiCustom" placeholder="Or paste any emoji or character">
+       <button class="ghost" id="emojiAdd" style="flex:0 0 auto">Use</button>
+     </div>`
+  );
+  const use = (ch) => {
+    if (!ch) return;
+    if (replace) {
+      const l = curLayer();
+      if (l) { l.text = ch; save(); paint(); buildInspector(); }
+    } else {
+      addLayer({ type: 'emoji', text: ch, size: 14 });
+    }
+    closeModal();
+  };
+  $('#modalBody').onclick = (e) => {
+    const b = e.target.closest('[data-emoji]');
+    if (b) return use(b.dataset.emoji);
+    if (e.target.id === 'emojiAdd') use($('#emojiCustom').value.trim());
+  };
+  $('#emojiCustom').onkeydown = (e) => { if (e.key === 'Enter') use(e.target.value.trim()); };
+}
+
 // ---------------------------------------------------------------- layer dragging
 // Drag a layer straight on the canvas — works in both the board and the single
 // preview. Position is written as a percentage of the canvas, so the result is
@@ -371,64 +418,124 @@ function removeLanguage(code) {
 let drag = null;
 let justDragged = false;
 
-function markSelectedLayer() {
-  document.querySelectorAll('.ash-layer.sel').forEach((el) => el.classList.remove('sel'));
+// The selected layer gets a rotate handle (round, above it) and a resize handle
+// (square, bottom-right). They live in a screen-space overlay rather than inside
+// the canvas: the canvas clips its overflow, so a handle on a layer near the
+// edge would be cut off and impossible to grab.
+function selectedLayerEl() {
   const scope = state.view === 'grid'
     ? document.querySelector(`.gcard[data-i="${state.sel}"][data-loc="${state.locale}"]`)
     : $('#canvasHost');
-  scope?.querySelector(`.ash-layer[data-l="${state.layer}"]`)?.classList.add('sel');
+  return scope?.querySelector(`.ash-layer[data-l="${state.layer}"]`) || null;
 }
 
+function markSelectedLayer() {
+  document.querySelectorAll('.ash-layer.sel').forEach((el) => el.classList.remove('sel'));
+  const el = selectedLayerEl();
+  const box = $('#layerHandles');
+  if (!el) { box.hidden = true; return; }
+  el.classList.add('sel');
+  box.hidden = false;
+  positionHandles();
+}
+
+function positionHandles() {
+  const el = selectedLayerEl();
+  const box = $('#layerHandles');
+  if (!el || box.hidden) return;
+  const b = el.getBoundingClientRect();
+  const rot = box.querySelector('.lh-rot');
+  const size = box.querySelector('.lh-size');
+  rot.style.left = `${b.left + b.width / 2}px`;
+  rot.style.top = `${b.top - 24}px`;
+  size.style.left = `${b.right}px`;
+  size.style.top = `${b.bottom}px`;
+}
+
+window.addEventListener('scroll', positionHandles, true);
+window.addEventListener('resize', positionHandles);
+
 document.addEventListener('mousedown', (e) => {
-  const el = e.target.closest('.ash-layer');
+  const handle = e.target.closest('#layerHandles .lh');
+  const el = handle ? selectedLayerEl() : e.target.closest('.ash-layer');
   if (!el) return;
   const canvas = el.closest('.ash-canvas');
   const card = el.closest('.gcard');
   // A board card only edits its own row's language; ignore drags on other rows.
-  if (card && card.dataset.loc !== state.locale) return;
-  const fi = card ? +card.dataset.i : state.sel;
-  const li = +el.dataset.l;
+  if (!handle && card && card.dataset.loc !== state.locale) return;
+  const fi = handle ? state.sel : card ? +card.dataset.i : state.sel;
+  const li = handle ? state.layer : +el.dataset.l;
   const layer = state.project.frames[fi]?.layers?.[li];
   if (!layer || !canvas) return;
 
   e.preventDefault();
   state.sel = fi;
   state.layer = li;
+
+  const b = el.getBoundingClientRect();
+  // Rotation is about the centre, so the axis-aligned box centre is still it.
+  const cx = b.left + b.width / 2;
+  const cy = b.top + b.height / 2;
+  const mode = handle
+    ? handle.classList.contains('lh-rot') ? 'rotate' : 'size'
+    : 'move';
+
   drag = {
-    el, layer,
+    mode, el, layer, cx, cy, moved: false,
+    intrinsic: parseFloat(canvas.style.width) || canvas.offsetWidth,
     rect: canvas.getBoundingClientRect(),
     sx: e.clientX, sy: e.clientY,
     x0: layer.x ?? 0, y0: layer.y ?? 50,
-    moved: false,
+    r0: layer.rotate ?? 0,
+    size0: layer.size ?? layer.w ?? 26,
+    a0: Math.atan2(e.clientY - cy, e.clientX - cx),
+    d0: Math.hypot(e.clientX - cx, e.clientY - cy) || 1,
   };
-  document.body.classList.add('dragging-layer');
-  buildInspector();
-  markSelectedLayer();
+  document.body.classList.add(`dragging-${mode}`);
+  if (!handle) { buildInspector(); markSelectedLayer(); }
 });
 
 window.addEventListener('mousemove', (e) => {
   if (!drag) return;
-  const dx = ((e.clientX - drag.sx) / drag.rect.width) * 100;
-  const dy = ((e.clientY - drag.sy) / drag.rect.height) * 100;
+  const l = drag.layer;
   if (Math.abs(e.clientX - drag.sx) > 2 || Math.abs(e.clientY - drag.sy) > 2) drag.moved = true;
-  drag.layer.x = Math.round((drag.x0 + dx) * 10) / 10;
-  drag.layer.y = Math.round((drag.y0 + dy) * 10) / 10;
-  // Move the dragged element directly; a full repaint mid-drag would stutter.
-  drag.el.style.left = `${50 + drag.layer.x}%`;
-  drag.el.style.top = `${drag.layer.y}%`;
+
+  if (drag.mode === 'move') {
+    l.x = round1(drag.x0 + ((e.clientX - drag.sx) / drag.rect.width) * 100);
+    l.y = round1(drag.y0 + ((e.clientY - drag.sy) / drag.rect.height) * 100);
+    drag.el.style.left = `${50 + l.x}%`;
+    drag.el.style.top = `${l.y}%`;
+  } else if (drag.mode === 'rotate') {
+    const a = Math.atan2(e.clientY - drag.cy, e.clientX - drag.cx);
+    let deg = drag.r0 + ((a - drag.a0) * 180) / Math.PI;
+    if (e.shiftKey) deg = Math.round(deg / 15) * 15;
+    l.rotate = round1((((deg + 180) % 360) + 360) % 360 - 180);
+    drag.el.style.transform = `translate(-50%,-50%) rotate(${l.rotate}deg)`;
+  } else {
+    // size: scale by how far the cursor moved from the centre
+    const d = Math.hypot(e.clientX - drag.cx, e.clientY - drag.cy);
+    const size = Math.max(1, Math.min(200, round1((drag.size0 * d) / drag.d0)));
+    l.size = size;
+    delete l.w;
+    if ((l.type || 'image') === 'image') drag.el.style.width = `${size}%`;
+    else drag.el.style.fontSize = `${(size / 100) * drag.intrinsic}px`;
+  }
+  positionHandles();
 });
 
 window.addEventListener('mouseup', () => {
   if (!drag) return;
   justDragged = drag.moved;
+  document.body.classList.remove('dragging-move', 'dragging-rotate', 'dragging-size');
   drag = null;
-  document.body.classList.remove('dragging-layer');
   save();
   paint();
   buildInspector();
   markSelectedLayer();
   setTimeout(() => (justDragged = false), 0);
 });
+
+const round1 = (n) => Math.round(n * 10) / 10;
 
 // ---------------------------------------------------------------- modal
 function openModal(title, html) {
@@ -708,31 +815,56 @@ function buildInspector() {
        <button class="ghost" data-reset="device.rotate">Use template rotation</button>`
   );
 
-  // Stacked images. Always per-frame — "All frames" would stamp the same
-  // artwork on every screenshot, which is almost never what you want.
+  // Stacked images, text and emoji. Always per-frame — "All frames" would stamp
+  // the same artwork on every screenshot, which is almost never what you want.
   const layers = Array.isArray(f.layers) ? f.layers : [];
   const li = Math.min(state.layer, layers.length - 1);
   const sel = layers[li];
+  const selType = sel ? sel.type || 'image' : null;
+  const isText = selType === 'text' || selType === 'emoji';
   const layerPanel = sec(
     'layers',
     'Layers',
-    `<div class="mini">Images stacked on this frame — badges, logos, cut-outs.</div>
+    `<div class="mini">Images, text and emoji stacked on this frame.</div>
      ${layers.length
        ? `<div class="layerlist">${layers
-           .map(
-             (l, k) => `<div class="layeritem${k === li ? ' on' : ''}" data-layer="${k}">
-               <img src="${assetURL(l.src)}" alt="">
-               <span>${shotLabel(l.src)}</span>
+           .map((l, k) => {
+             const t = l.type || 'image';
+             const label = t === 'image' ? shotLabel(l.src) : l.text || t;
+             const thumb = t === 'image'
+               ? `<img src="${assetURL(l.src)}" alt="">`
+               : `<i class="lchip">${escHtml((l.text || '').slice(0, 2))}</i>`;
+             return `<div class="layeritem${k === li ? ' on' : ''}" data-layer="${k}">
+               ${thumb}<span>${escHtml(label)}</span>
                <button data-layerup="${k}" title="Bring forward">↑</button>
                <button data-layerdel="${k}" title="Delete">×</button>
-             </div>`
-           )
+             </div>`;
+           })
            .join('')}</div>`
        : ''}
-     <button class="ghost" id="addLayer">+ Add image layer</button>
+     <div class="addlayer">
+       <button class="ghost" id="addLayerImage">+ Image</button>
+       <button class="ghost" id="addLayerText">+ Text</button>
+       <button class="ghost" id="addLayerEmoji">+ Emoji</button>
+     </div>
      ${sel
-       ? `<div class="mini">Drag it on the canvas to position it.</div>` +
-         layerRange('Size', 'w', 3, 120, 0.5, sel.w ?? 26) +
+       ? `<div class="mini">Drag it on the canvas. Use the round handle to rotate
+            and the square one to resize — hold Shift to snap the angle.</div>` +
+         (selType === 'text'
+           ? `<textarea data-layertext placeholder="Text">${escHtml(sel.text || '')}</textarea>
+              <div class="row"><label>Colour</label>
+                <input type="color" data-layercolor value="${sel.color || '#ffffff'}"></div>
+              ${rowSelectRaw('Font', 'layerfont', FONT_IDS, sel.font || 'Inter')}
+              ${rowSelectRaw('Weight', 'layerweight', [400, 500, 600, 700, 800, 900], sel.weight ?? 800)}
+              ${layerRange('Max width', 'width', 10, 100, 1, sel.width ?? 60)}
+              ${layerRange('Shadow', 'shadow', 0, 1, 0.05, sel.shadow ?? 0)}`
+           : '') +
+         (selType === 'emoji'
+           ? `<input type="text" data-layertext placeholder="Emoji" value="${escAttr(sel.text || '')}">
+              <button class="ghost" id="pickEmoji">Pick an emoji…</button>`
+           : '') +
+         (selType === 'image' ? `<button class="ghost" id="replaceLayer">Replace image…</button>` : '') +
+         layerRange(isText ? 'Font size' : 'Size', 'size', 1, 120, 0.5, sel.size ?? sel.w ?? 26) +
          layerRange('X', 'x', -60, 60, 0.5, sel.x ?? 0) +
          layerRange('Y', 'y', -10, 110, 0.5, sel.y ?? 50) +
          layerRange('Rotate', 'rotate', -180, 180, 1, sel.rotate ?? 0) +
@@ -854,6 +986,25 @@ $('#panels').addEventListener('input', (e) => {
     }
     return;
   }
+  if (t.dataset.layertext !== undefined) {
+    const l = curLayer();
+    if (l) { l.text = t.value; save(); paint(); }
+    return;
+  }
+  if (t.dataset.layercolor !== undefined) {
+    const l = curLayer();
+    if (l) { l.color = t.value; save(); paint(); }
+    return;
+  }
+  if (t.dataset.raw === 'layerfont' || t.dataset.raw === 'layerweight') {
+    const l = curLayer();
+    if (l) {
+      if (t.dataset.raw === 'layerfont') l.font = t.value;
+      else l.weight = +t.value;
+      save(); paint();
+    }
+    return;
+  }
   if (t.dataset.layerbehind !== undefined) {
     const l = frame().layers[Math.min(state.layer, frame().layers.length - 1)];
     if (l) { l.behind = t.checked; save(); paint(); }
@@ -933,7 +1084,11 @@ $('#panels').addEventListener('click', (e) => {
   if (t.dataset.bgp) { write('background', t.dataset.bgp); buildInspector(); return; }
   if (t.dataset.reset) { write(t.dataset.reset, null); buildInspector(); return; }
   if (t.id === 'browseTpl') { openTemplateGallery(); return; }
-  if (t.id === 'addLayer') { bgPickerTarget = 'layer'; $('#bgPicker').click(); return; }
+  if (t.id === 'addLayerImage') { bgPickerTarget = 'layer'; $('#bgPicker').click(); return; }
+  if (t.id === 'replaceLayer') { bgPickerTarget = 'layerReplace'; $('#bgPicker').click(); return; }
+  if (t.id === 'addLayerText') { addLayer({ type: 'text', text: 'Your text', size: 7 }); return; }
+  if (t.id === 'addLayerEmoji') { openEmojiPicker(); return; }
+  if (t.id === 'pickEmoji') { openEmojiPicker(true); return; }
   if (t.dataset.layerdel !== undefined) {
     frame().layers.splice(+t.dataset.layerdel, 1);
     state.layer = 0;
@@ -992,11 +1147,10 @@ $('#bgPicker').onchange = async (e) => {
     state.project.appIcon = path;
     save(); paint();
   } else if (bgPickerTarget === 'layer') {
-    const f = frame();
-    f.layers = f.layers || [];
-    f.layers.push({ src: path, x: 0, y: 50, w: 26, rotate: 0, opacity: 1 });
-    state.layer = f.layers.length - 1;
-    save(); paint();
+    addLayer({ type: 'image', src: path });
+  } else if (bgPickerTarget === 'layerReplace') {
+    const l = curLayer();
+    if (l) { l.src = path; save(); paint(); }
   } else {
     writeBG((bg) => { bg.type = 'image'; bg.src = path; });
   }

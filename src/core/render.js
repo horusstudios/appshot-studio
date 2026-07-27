@@ -208,23 +208,51 @@ function renderDeviceEl({ cw, ch, spec, deviceCfg, dev, src, index, template, le
   </div>`;
 }
 
-// Free-floating images stacked on a frame — badges, logos, arrows, cut-outs.
+// Free-floating things stacked on a frame — images, text and emoji.
 // `behind: true` puts one under the device instead of over it.
-export const DEFAULT_LAYER = { x: 0, y: 50, w: 26, rotate: 0, opacity: 1, behind: false };
+// `size` is a percentage of canvas width: image width for image layers,
+// font size for text and emoji, so one control fits every type.
+export const DEFAULT_LAYER = {
+  type: 'image',
+  x: 0, y: 50, size: 26, rotate: 0, opacity: 1, behind: false,
+  text: '', color: '#ffffff', font: 'Inter', weight: 800, width: 60, shadow: 0,
+};
 
-function renderLayers(frame, assetURL) {
+const EMOJI_STACK =
+  "'Apple Color Emoji','Segoe UI Emoji','Noto Color Emoji',sans-serif";
+
+export const LAYER_TYPES = ['image', 'text', 'emoji'];
+
+function renderLayers(frame, assetURL, cw) {
   const layers = frame.layers;
   if (!Array.isArray(layers) || !layers.length) return '';
   return layers
     .map((raw, k) => {
       const l = { ...DEFAULT_LAYER, ...raw };
-      if (!l.src) return '';
+      const size = l.size ?? l.w ?? DEFAULT_LAYER.size;
       // data-l lets the editor map a dragged element back to its layer.
-      return `<img class="ash-layer" data-l="${k}" src="${esc(assetURL(l.src))}" alt="" style="
-        left:${50 + l.x}%;top:${l.y}%;width:${l.w}%;
-        transform:translate(-50%,-50%) rotate(${l.rotate}deg);
-        opacity:${l.opacity};
-        z-index:${l.behind ? 1 : 6};">`;
+      const box =
+        `left:${50 + l.x}%;top:${l.y}%;` +
+        `transform:translate(-50%,-50%) rotate(${l.rotate}deg);` +
+        `opacity:${l.opacity};z-index:${l.behind ? 1 : 6};`;
+
+      if (l.type === 'text' || l.type === 'emoji') {
+        if (!l.text) return '';
+        const emoji = l.type === 'emoji';
+        const fs = (size / 100) * cw;
+        const shadow = l.shadow
+          ? `text-shadow:0 ${fs * 0.05}px ${fs * 0.16}px rgba(0,0,0,${0.7 * l.shadow});`
+          : '';
+        return `<div class="ash-layer ash-layer-text" data-l="${k}" style="${box}
+          font-family:${emoji ? EMOJI_STACK : fontStack(l.font)};
+          font-size:${fs}px;font-weight:${emoji ? 400 : l.weight};
+          ${emoji ? '' : `color:${l.color};`}
+          max-width:${l.width}%;${shadow}">${richText(l.text)}</div>`;
+      }
+
+      if (!l.src) return '';
+      return `<div class="ash-layer" data-l="${k}" style="${box}width:${size}%;">
+        <img src="${esc(assetURL(l.src))}" alt=""></div>`;
     })
     .join('');
 }
@@ -450,7 +478,7 @@ export function renderFrame({
     ${ovCSS ? `<div class="ash-pattern" style="${ovCSS}"></div>` : ''}
     ${scrim}
     <div class="ash-stage" style="${cont === 'full' ? stripStyle : ''}">${devicesHTML}</div>
-    ${renderLayers(frame, assetURL)}
+    ${renderLayers(frame, assetURL, cw)}
     ${renderTextEl({
       cw, ch, frame, text, tpl,
       tSpec: textSpecFor(tpl, i, frame.role),
@@ -487,6 +515,8 @@ export const CANVAS_CSS = `
 .ash-cam{background:#15151c;box-shadow:inset 0 0 0 1px rgba(255,255,255,.08);}
 .ash-homebar{position:absolute;left:50%;transform:translateX(-50%);background:rgba(255,255,255,.85);border-radius:999px;z-index:3;}
 .ash-text{position:absolute;z-index:5;}
-.ash-layer{position:absolute;height:auto;pointer-events:none;}
+.ash-layer{position:absolute;pointer-events:none;}
+.ash-layer img{display:block;width:100%;height:auto;}
+.ash-layer-text{text-align:center;line-height:1.15;white-space:pre-wrap;word-break:break-word;width:max-content;}
 .ash-title b,.ash-subtitle b{font-weight:900;}
 `;
