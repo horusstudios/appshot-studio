@@ -162,6 +162,85 @@ export const TEMPLATES = {
     tablet: { devices: [{ w: 68, y: 30, x: 0, rotate: 0 }] },
   },
 
+  // --- storyboard strips: set 10 kareye yayılmış TEK kompozisyondur -----------
+  'strip-blocks': {
+    name: 'Şerit — bloklar',
+    hint: 'Renk blokları kare sınırlarını keser, cihaz boyları ritim halinde değişir.',
+    continuous: 'full',
+    text: { y: 6, height: 20, align: 'center', width: 82, anchor: 'top' },
+    devices: [{ w: 68, y: 30, x: 0, rotate: 0 }],
+    variants: [
+      { w: 68, y: 30 },
+      { w: 58, y: 17 },
+      { w: 72, y: 34 },
+      { w: 56, y: 15 },
+      { w: 64, y: 27 },
+    ],
+    textVariants: [
+      { anchor: 'top', y: 6 },
+      { anchor: 'bottom', y: 8 },
+      { anchor: 'top', y: 6 },
+      { anchor: 'bottom', y: 8 },
+      { anchor: 'top', y: 6 },
+    ],
+    cover: {
+      device: { w: 56, y: 46 },
+      text: { y: 8, width: 80 },
+      style: { titleSize: 7.4, subtitleSize: 2.9, gap: 1.9 },
+    },
+    cta: {
+      text: { y: 34, width: 76, anchor: 'top', align: 'center' },
+      style: { titleSize: 6.8, subtitleSize: 3.0, gap: 2.2 },
+    },
+    tablet: { variants: [{ w: 64, y: 28 }, { w: 56, y: 18 }, { w: 68, y: 31 }, { w: 54, y: 16 }, { w: 62, y: 25 }] },
+  },
+
+  'strip-cross': {
+    name: 'Şerit — taşan cihaz',
+    hint: 'Her üçüncü kare, iki ekrana birden yayılan büyük bir cihazla kesilir.',
+    continuous: 'full',
+    text: { y: 6, height: 20, align: 'center', width: 82, anchor: 'top' },
+    devices: [{ w: 62, y: 26, x: 0, rotate: 0 }],
+    variants: [
+      { w: 62, y: 26, z: 2 },
+      { w: 62, y: 20, z: 2 },
+      { w: 106, y: 30, z: 0 },
+      { w: 62, y: 22, z: 2 },
+      { w: 62, y: 28, z: 2 },
+      { w: 104, y: 24, z: 0 },
+    ],
+    // Bu şablonda her cihaz ekranın üst üçte birinden başlayıp aşağı taşıyor;
+    // alta düşen metin beyaz ekran görüntüsünün üstünde kayboluyordu.
+    textVariants: [{ anchor: 'top', y: 6 }],
+    cover: {
+      device: { w: 58, y: 44 },
+      text: { y: 8, width: 80 },
+      style: { titleSize: 7.4, subtitleSize: 2.9, gap: 1.9 },
+    },
+    cta: {
+      text: { y: 34, width: 76, anchor: 'top', align: 'center' },
+      style: { titleSize: 6.8, subtitleSize: 3.0, gap: 2.2 },
+    },
+  },
+
+  'strip-uniform': {
+    name: 'Şerit — düzenli',
+    hint: 'Eşit cihaz sırası, tüm metinler üstte. Arkaplan blokları akmaya devam eder.',
+    continuous: 'full',
+    text: { y: 6, height: 18, align: 'center', width: 84, anchor: 'top' },
+    devices: [{ w: 66, y: 28, x: 0, rotate: 0 }],
+    variants: [{ w: 66, y: 28 }],
+    cover: {
+      device: { w: 58, y: 44 },
+      text: { y: 8, width: 80 },
+      style: { titleSize: 7.4, subtitleSize: 2.9, gap: 1.9 },
+    },
+    cta: {
+      text: { y: 34, width: 76, anchor: 'top', align: 'center' },
+      style: { titleSize: 6.8, subtitleSize: 3.0, gap: 2.2 },
+    },
+  },
+
   'peek-bottom': {
     name: 'Peek',
     hint: 'Only the top third of the device shows — very editorial.',
@@ -186,12 +265,41 @@ export function getTemplate(id, deviceKind = 'phone') {
     devices: t.devices.map((d) => ({ x: 0, rotate: 0, z: 1, ...d })),
     scrim: t.scrim || null,
     continuous: t.continuous || null,
+    variants: t.variants || null,
+    textVariants: t.textVariants || null,
+    cover: t.cover || null,
+    cta: t.cta || null,
   };
   if (deviceKind === 'tablet' && t.tablet) {
     if (t.tablet.text) base.text = { ...base.text, ...t.tablet.text };
     if (t.tablet.devices) {
       base.devices = t.tablet.devices.map((d) => ({ x: 0, rotate: 0, z: 1, ...d }));
     }
+    if (t.tablet.variants) base.variants = t.tablet.variants;
   }
   return base;
+}
+
+/**
+ * Bir karenin cihaz yerleşimi: temel şablon + o karenin ritim varyantı + rolü.
+ * Ritim sayesinde set boyunca cihaz boyu/yüksekliği değişir, bazıları kareyi
+ * aşıp komşuya taşar.
+ */
+export function deviceSpecFor(tpl, frameIndex, role) {
+  let spec = { ...tpl.devices[0] };
+  if (tpl.variants && tpl.variants.length) {
+    spec = { ...spec, ...tpl.variants[frameIndex % tpl.variants.length] };
+  }
+  if (role === 'cover' && tpl.cover && tpl.cover.device) spec = { ...spec, ...tpl.cover.device };
+  return spec;
+}
+
+export function textSpecFor(tpl, frameIndex, role) {
+  let spec = { ...tpl.text };
+  if (tpl.textVariants && tpl.textVariants.length) {
+    spec = { ...spec, ...tpl.textVariants[frameIndex % tpl.textVariants.length] };
+  }
+  if (role === 'cover' && tpl.cover && tpl.cover.text) spec = { ...spec, ...tpl.cover.text };
+  if (role === 'cta' && tpl.cta && tpl.cta.text) spec = { ...spec, ...tpl.cta.text };
+  return spec;
 }

@@ -288,7 +288,8 @@ function openPackGallery() {
   const cards = SET_IDS.map((id) => {
     const clone = JSON.parse(JSON.stringify(state.project));
     applySet(clone, id);
-    const shown = clone.frames.slice(0, 3);
+    // Storyboard setlerinde kompozisyon ancak birkaç karede okunuyor.
+    const shown = clone.frames.slice(0, SETS[id].story ? 5 : 3);
     const strip = shown
       .map((f, j) => {
         const { html, width, height } = renderFrame({
@@ -474,6 +475,13 @@ function buildInspector() {
      <input type="text" data-frame="eyebrow" placeholder="Eyebrow (optional)" value="${escAttr(f.eyebrow)}">
      <textarea data-frame="title" placeholder="Headline">${escHtml(f.title)}</textarea>
      <textarea data-frame="subtitle" placeholder="Sub-headline">${escHtml(f.subtitle)}</textarea>
+     <div class="row"><label>Rol</label><select data-role>
+       ${[['feature', 'Normal kare'], ['cover', 'Kapak (ilk kare)'], ['cta', 'CTA (son kare)']]
+         .map(([v, t]) => `<option value="${v}"${(f.role || 'feature') === v ? ' selected' : ''}>${t}</option>`)
+         .join('')}
+     </select></div>
+     ${f.role === 'cta' ? `<input type="text" data-frame="cta" placeholder="Buton yazısı" value="${escAttr(f.cta)}">` : ''}
+     ${f.role === 'cover' ? `<button class="ghost" id="pickIcon">Uygulama ikonu…${state.project.appIcon ? ' ✓' : ''}</button>` : ''}
      <button class="ghost" id="pickShot">Replace screenshot for ${DEVICES[state.device].label.split('(')[0].trim()}…</button>
      <div class="mini">${
        resolveScreenshots(f, state.device)[0]
@@ -638,6 +646,15 @@ $('#panels').addEventListener('input', (e) => {
     save(); paint();
     return;
   }
+  if (t.dataset.role !== undefined) {
+    if (t.value === 'feature') delete frame().role;
+    else {
+      frame().role = t.value;
+      if (t.value === 'cta' && !frame().cta) frame().cta = 'Ücretsiz indir';
+    }
+    save(); paint(); buildInspector();
+    return;
+  }
   if (t.dataset.raw === 'bgtype') {
     const seeds = {
       solid: { type: 'solid', color: '#0f172a' },
@@ -710,7 +727,8 @@ $('#panels').addEventListener('click', (e) => {
     save(); paint(); buildInspector();
     return;
   }
-  if (t.id === 'pickBg') { $('#bgPicker').click(); return; }
+  if (t.id === 'pickBg') { bgPickerTarget = 'bg'; $('#bgPicker').click(); return; }
+  if (t.id === 'pickIcon') { bgPickerTarget = 'icon'; $('#bgPicker').click(); return; }
   if (t.id === 'exportNow') doExport();
 });
 
@@ -730,12 +748,18 @@ $('#filePicker').onchange = async (e) => {
   await addShots(files, pickTarget === 'shot');
 };
 
+let bgPickerTarget = 'bg';
 $('#bgPicker').onchange = async (e) => {
   const file = e.target.files[0];
   e.target.value = '';
   if (!file) return;
   const { path } = await api.upload(state.name, file);
-  writeBG((bg) => { bg.type = 'image'; bg.src = path; });
+  if (bgPickerTarget === 'icon') {
+    state.project.appIcon = path;
+    save(); paint();
+  } else {
+    writeBG((bg) => { bg.type = 'image'; bg.src = path; });
+  }
   buildInspector();
 };
 

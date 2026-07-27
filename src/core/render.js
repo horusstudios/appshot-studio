@@ -2,7 +2,8 @@
 // renderFrame() so what you see in the browser is exactly what gets exported.
 
 import { getDevice, FRAME_STYLES } from './devices.js';
-import { getTemplate } from './templates.js';
+import { getTemplate, deviceSpecFor, textSpecFor } from './templates.js';
+import { shapesSVG } from './shapes.js';
 import { backgroundCSS, overlayCSS, dimCSS, resolveBackground } from './backgrounds.js';
 import { fontStack } from './fonts.js';
 
@@ -206,13 +207,16 @@ function renderDeviceEl({ cw, ch, spec, deviceCfg, dev, src, index, template, le
   </div>`;
 }
 
-function renderTextEl({ cw, ch, frame, text, tpl }) {
+function renderTextEl({ cw, ch, frame, text, tpl, tSpec, project, assetURL }) {
   const title = frame.title ?? '';
   const subtitle = frame.subtitle ?? '';
   const eyebrow = frame.eyebrow ?? '';
-  if (!title && !subtitle && !eyebrow) return '';
+  const role = frame.role || 'feature';
+  const icon = role === 'cover' && project.appIcon ? assetURL(project.appIcon) : null;
+  const cta = role === 'cta' ? frame.cta || '' : '';
+  if (!title && !subtitle && !eyebrow && !icon && !cta) return '';
 
-  const align = text.align || tpl.text.align || 'center';
+  const align = text.align || tSpec.align || 'center';
   const pct = (v) => (v / 100) * cw;
   const shadow = text.shadow
     ? `text-shadow:0 ${pct(0.4)}px ${pct(1.2)}px rgba(0,0,0,${0.6 * text.shadow});`
@@ -221,11 +225,11 @@ function renderTextEl({ cw, ch, frame, text, tpl }) {
   const subColor = text.subtitleColor || withAlpha(text.color, 0.78);
   const eyeColor = text.eyebrowColor || withAlpha(text.color, 0.85);
 
-  const anchor = tpl.text.anchor === 'bottom'
-    ? `bottom:${tpl.text.y}%;`
-    : `top:${tpl.text.y}%;`;
+  const anchor = tSpec.anchor === 'bottom'
+    ? `bottom:${tSpec.y}%;`
+    : `top:${tSpec.y}%;`;
 
-  const card = tpl.text.card;
+  const card = tSpec.card;
   const cardCSS = card
     ? `background:${withAlpha(card.color, card.opacity)};border-radius:${pct(
         card.radius
@@ -235,6 +239,15 @@ function renderTextEl({ cw, ch, frame, text, tpl }) {
     : '';
 
   const parts = [];
+  if (icon) {
+    parts.push(
+      `<img class="ash-appicon" src="${esc(icon)}" alt="" style="width:${pct(
+        text.iconSize ?? 11
+      )}px;height:${pct(text.iconSize ?? 11)}px;border-radius:${pct(
+        (text.iconSize ?? 11) * 0.22
+      )}px;margin-bottom:${pct(text.gap * 1.1)}px;">`
+    );
+  }
   if (eyebrow) {
     parts.push(
       `<div class="ash-eyebrow" style="font-size:${pct(text.eyebrowSize)}px;font-weight:${
@@ -263,10 +276,20 @@ function renderTextEl({ cw, ch, frame, text, tpl }) {
     );
   }
 
+  if (cta) {
+    parts.push(
+      `<div class="ash-ctabtn" style="margin-top:${pct(text.gap * 1.4)}px;font-size:${pct(
+        text.subtitleSize * 0.86
+      )}px;font-weight:700;color:${text.ctaColor || '#0f172a'};background:${
+        text.ctaBg || '#ffffff'
+      };padding:${pct(1.5)}px ${pct(4)}px;border-radius:${pct(9)}px;">${richText(cta)}</div>`
+    );
+  }
+
   return `<div class="ash-text" style="
       ${anchor}
-      left:${50 + (tpl.text.x || 0)}%;
-      width:${tpl.text.width}%;
+      left:${50 + (tSpec.x || 0)}%;
+      width:${tSpec.width}%;
       transform:translateX(-50%);
       text-align:${align};
       font-family:${fontStack(text.font)};
@@ -300,7 +323,13 @@ export function renderFrame({
   const templateId = frame.template || defaults.template || 'text-top';
   const tpl = getTemplate(templateId, dev.kind);
 
-  const text = merge(DEFAULT_TEXT, defaults.text, frame.text);
+  // Kapak ve CTA kareleri kendi tipografi ölçeğini kullanır; kullanıcının kare
+  // bazlı override'ı yine en üstte kalır.
+  const roleStyle =
+    frame.role === 'cover' ? tpl.cover && tpl.cover.style
+    : frame.role === 'cta' ? tpl.cta && tpl.cta.style
+    : null;
+  const text = merge(DEFAULT_TEXT, defaults.text, roleStyle, frame.text);
   const deviceCfg = merge(DEFAULT_DEVICE, defaults.device, frame.device);
   const bgRaw = frame.background ?? defaults.background ?? 'midnight';
 
@@ -332,9 +361,10 @@ export function renderFrame({
 
   let devicesHTML;
   if (cont === 'full') {
-    const spec = tpl.devices[0];
     devicesHTML = frames
       .map((f, j) => {
+        if (f.role === 'cta') return ''; // CTA karesinde cihaz yok
+        const spec = deviceSpecFor(tpl, j, f.role);
         const s = resolveScreenshots(f, deviceId).map(assetURL);
         return renderDeviceEl({
           cw,
@@ -349,8 +379,15 @@ export function renderFrame({
         });
       })
       .join('');
+  } else if (frame.role === 'cta') {
+    devicesHTML = '';
   } else {
-    devicesHTML = tpl.devices
+    const specs = tpl.variants
+      ? [deviceSpecFor(tpl, i, frame.role)]
+      : tpl.devices.map((d) => (frame.role === 'cover' && tpl.cover && tpl.cover.device
+          ? { ...d, ...tpl.cover.device }
+          : d));
+    devicesHTML = specs
       .map((spec, k) =>
         renderDeviceEl({
           cw,
@@ -366,6 +403,12 @@ export function renderFrame({
       .join('');
   }
 
+  // Şerit boyunca akan dekoratif şekil katmanı.
+  const shapeSpec = bgResolved.shapes;
+  const shapesHTML = shapeSpec
+    ? shapesSVG(shapeSpec, { stripW, ch, cw, count: cont ? count : 1 })
+    : '';
+
   const scrim = tpl.scrim
     ? `<div class="ash-scrim" style="background:linear-gradient(to ${
         tpl.scrim.from === 'bottom' ? 'top' : 'bottom'
@@ -374,11 +417,16 @@ export function renderFrame({
 
   const html = `<div class="ash-canvas" data-frame="${esc(frame.id ?? '')}" style="width:${cw}px;height:${ch}px;">
     <div class="ash-bg" style="${stripStyle}${bgCSS}"></div>
+    ${shapesHTML ? `<div class="ash-shapes" style="${stripStyle}">${shapesHTML}</div>` : ''}
     ${dCSS ? `<div class="ash-dim" style="${dCSS}"></div>` : ''}
     ${ovCSS ? `<div class="ash-pattern" style="${ovCSS}"></div>` : ''}
     ${scrim}
     <div class="ash-stage" style="${cont === 'full' ? stripStyle : ''}">${devicesHTML}</div>
-    ${renderTextEl({ cw, ch, frame, text, tpl })}
+    ${renderTextEl({
+      cw, ch, frame, text, tpl,
+      tSpec: textSpecFor(tpl, i, frame.role),
+      project, assetURL,
+    })}
   </div>`;
 
   return { html, width: cw, height: ch };
@@ -387,7 +435,11 @@ export function renderFrame({
 export const CANVAS_CSS = `
 .ash-canvas{position:relative;overflow:hidden;isolation:isolate;background:#000;}
 .ash-canvas *{box-sizing:border-box;margin:0;padding:0;}
-.ash-bg,.ash-dim,.ash-pattern,.ash-scrim{position:absolute;inset:0;}
+.ash-bg,.ash-dim,.ash-pattern,.ash-scrim,.ash-shapes{position:absolute;inset:0;}
+.ash-shapes{z-index:1;pointer-events:none;overflow:hidden;}
+.ash-shapes svg{display:block;height:100%;}
+.ash-appicon{display:inline-block;object-fit:cover;box-shadow:0 6px 24px rgba(0,0,0,.28);}
+.ash-ctabtn{display:inline-block;line-height:1;}
 .ash-bg{background-repeat:no-repeat;background-position:center;transform-origin:center;}
 .ash-pattern{pointer-events:none;}
 .ash-scrim{pointer-events:none;z-index:4;}

@@ -61,6 +61,19 @@ temizlenir — metinlere dokunulmaz. Sonrasında tek tek kare değiştirilebilir
 `panorama-flow` ve `panorama-tilt` **sürekli** setlerdir: arkaplan ve cihazlar
 kareden kareye devam eder, set tek bir geniş görsel gibi okunur.
 
+**`story-*` setleri (storyboard):** set, 10 kareye bölünmüş TEK kompozisyondur.
+- Arkaplan şekilleri (`src/core/shapes.js`) şeridin tamamına çizilir; panel
+  kenarları bilerek kare sınırlarına denk gelmez (`offset: 0.5`).
+- Cihaz boyu/yüksekliği `variants[]` ritmiyle kareden kareye değişir; `strip-cross`
+  şablonunda her üçüncü cihaz kareyi aşıp komşuya taşar (`z: 0` ile arkada durur).
+- Metin `textVariants[]` ile sırayla üstte/altta. Cihazın kapladığı yere metin
+  koymamaya dikkat et — beyaz ekran görüntüsü üstünde beyaz metin kayboluyor.
+- İlk kare `role: 'cover'` (ikon + büyük başlık), son kare `role: 'cta'` (cihaz yok,
+  ortada başlık + buton). Rolleri `applySet` otomatik atar.
+
+Şekil türleri: `blocks` (mode `full`/`alt`), `blobs`, `waves`, `circles`.
+Arkaplan objesine `shapes: {...}` eklenerek her sete takılabilir.
+
 Sürekli şablonlar (`pano-flow`, `pano-tilt`, `pano-hero`) `continuous` alanıyla
 işaretlenir; render sırasında `count` kare genişliğinde bir şerit çizilip `index`
 kadar sola kaydırılır. Bu yüzden `renderFrame`'e **index geçmek şart** — geçilmezse

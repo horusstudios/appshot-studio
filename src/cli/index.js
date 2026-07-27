@@ -171,6 +171,11 @@ commands.set = (a) => {
     if (subtitles) f.subtitle = (subtitles[k] ?? f.subtitle).trim();
     else if (typeof a.flags.subtitle === 'string') f.subtitle = a.flags.subtitle;
     if (typeof a.flags.eyebrow === 'string') f.eyebrow = a.flags.eyebrow;
+    if (typeof a.flags.role === 'string') {
+      if (a.flags.role === 'feature') delete f.role;
+      else f.role = a.flags.role;
+    }
+    if (typeof a.flags.cta === 'string') { f.cta = a.flags.cta; f.role = 'cta'; }
     if (typeof a.flags.template === 'string') f.template = a.flags.template;
     if (a.flags.bg) f.background = parseBackground(a.flags.bg);
     if (typeof a.flags.shot === 'string') {
@@ -236,6 +241,15 @@ commands.style = (a) => {
 
   saveProject(name, p);
   ok(scope ? `styled frame(s) ${scope.map((i) => i + 1).join(', ')}` : 'styled project defaults');
+};
+
+commands.icon = (a) => {
+  const name = a._[0] || die('usage: appshot icon <project> <icon.png>');
+  const src = a._[1] || die('give an icon image path');
+  const p = loadProject(name);
+  p.appIcon = importImage(name, path.resolve(src));
+  saveProject(name, p);
+  ok(`app icon set (kapak karesinde görünür) → ${p.appIcon}`);
 };
 
 commands.order = (a) => {
@@ -342,6 +356,9 @@ const help = `
     appshot set <project> --frames 1,3 --title "..." --subtitle "..." [--eyebrow "..."] [--template hero] [--bg sunset]
     appshot set <project> --frames all --titles "One|Two|Three"
     appshot set <project> --frames 1 --shot ~/Desktop/ipad-home.png --for ipad-13   (per-device screenshot)
+    appshot set <project> --frames 1 --role cover      (kapak karesi: ikon + büyük başlık)
+    appshot set <project> --frames 8 --cta "Ücretsiz indir"   (son kare: CTA butonu)
+    appshot icon <project> icon.png
     appshot order <project> 3,1,2
     appshot rm <project> --frames 4
 

@@ -181,6 +181,126 @@ export const SETS = {
   },
 };
 
+// --- Storyboard setleri ------------------------------------------------------
+// Bunlarda set, 10 kareye bölünmüş TEK bir kompozisyondur: arkaplan şekilleri
+// kare sınırlarını keser, cihaz boyu kareden kareye değişir, bazı cihazlar iki
+// ekrana birden yayılır. İlk kare kapak, son kare CTA olur.
+
+const storyText = (over = {}) => ({
+  font: 'Inter', color: '#ffffff', titleSize: 4.6, titleWeight: 800,
+  titleLetterSpacing: -1.5, subtitleSize: 2.5, subtitleWeight: 400,
+  eyebrowSize: 1.9, eyebrowWeight: 700, eyebrowLetterSpacing: 12,
+  // Metin bazen renkli blokların üstüne denk geliyor; hafif gölge her iki
+  // zeminde de okunur tutuyor.
+  gap: 1.6, shadow: 0.3, ...over,
+});
+
+Object.assign(SETS, {
+  'story-blocks': {
+    name: 'Storyboard — Bloklar',
+    hint: 'Lime bloklar koyu teal üstünde kare sınırlarını keser. Ekranlar tek şerit gibi okunur.',
+    story: true,
+    defaults: {
+      background: {
+        type: 'solid', color: '#0e4a5e',
+        // Tek renk + alt modu: paneller her karede yön değiştirip zikzak yapar,
+        // böylece her karede hem koyu hem lime alan kalır.
+        shapes: { kind: 'blocks', mode: 'alt', colors: ['#5f9e2b'], skew: 0.1, size: 0.56 },
+      },
+      text: storyText(),
+      device: { shadow: 0.5 },
+    },
+    sequence: ['strip-blocks'],
+    cover: true,
+    cta: true,
+  },
+
+  'story-citrus': {
+    name: 'Storyboard — Sarı/Teal',
+    hint: 'Tam boy sarı ve teal paneller yarım kare kaymış şekilde akar.',
+    story: true,
+    defaults: {
+      background: {
+        type: 'solid', color: '#0e5563',
+        shapes: { kind: 'blocks', mode: 'full', colors: ['#f0a92b', 'transparent'], skew: 0.06 },
+      },
+      text: storyText({ font: 'Poppins', titleWeight: 700 }),
+      device: { shadow: 0.5 },
+    },
+    sequence: ['strip-blocks'],
+    cover: true,
+    cta: true,
+  },
+
+  'story-organic': {
+    name: 'Storyboard — Organik',
+    hint: 'Turuncu ve koyu organik lekeler mavi zeminde akar; her 3. kare taşan cihazla kesilir.',
+    story: true,
+    defaults: {
+      background: {
+        type: 'solid', color: '#4a3fe0',
+        shapes: { kind: 'blobs', colors: ['#e2724a', '#2b2b3a', '#5b51ef'], per: 1.6, size: 0.62, opacity: 0.95 },
+      },
+      text: storyText({ font: 'Plus Jakarta Sans' }),
+      device: { shadow: 0.55 },
+    },
+    sequence: ['strip-cross'],
+    cover: true,
+    cta: true,
+  },
+
+  'story-wave': {
+    name: 'Storyboard — Dalga',
+    hint: 'Hardal rengi tek bir dalga tüm seti kat eder, üstünde taşan cihazlar.',
+    story: true,
+    defaults: {
+      background: {
+        type: 'solid', color: '#0d0d12',
+        shapes: { kind: 'waves', colors: ['#d9a13b', '#b8862c'], size: 0.17, baseline: 0.6 },
+      },
+      text: storyText({ font: 'Space Grotesk', titleWeight: 700 }),
+      device: { shadow: 0.6 },
+    },
+    sequence: ['strip-cross'],
+    cover: true,
+    cta: true,
+  },
+
+  'story-berry': {
+    name: 'Storyboard — Berry',
+    hint: 'Bordo ve mor paneller; eşit cihaz sırası, tüm metinler üstte.',
+    story: true,
+    defaults: {
+      background: {
+        type: 'solid', color: '#a81f4a',
+        shapes: { kind: 'blocks', mode: 'full', colors: ['#6b2d8f', 'transparent'], skew: 0.12, pitch: 1.3 },
+      },
+      text: storyText({ font: 'Manrope' }),
+      device: { shadow: 0.5 },
+    },
+    sequence: ['strip-uniform'],
+    cover: true,
+    cta: true,
+  },
+
+  'story-circles': {
+    name: 'Storyboard — Daireler',
+    hint: 'Metinlerin arkasına oturan büyük daireler; sakin, düzenli cihaz sırası.',
+    story: true,
+    defaults: {
+      background: {
+        type: 'linear', angle: 160, stops: ['#2233c4', '#1a2596'],
+        shapes: { kind: 'circles', colors: ['#6b2d6b', '#7e3a7e'], size: 0.46, every: 2, phase: 1 },
+      },
+      text: storyText({ font: 'DM Sans' }),
+      device: { shadow: 0.5 },
+    },
+    sequence: ['strip-uniform'],
+    cover: true,
+    cta: true,
+  },
+});
+
 export const SET_IDS = Object.keys(SETS);
 
 /**
@@ -203,11 +323,19 @@ export function applySet(project, setId) {
   };
   project.set = setId;
 
+  const last = project.frames.length - 1;
   project.frames.forEach((f, i) => {
     f.template = set.sequence[i % set.sequence.length];
     delete f.background;
     delete f.text;
     delete f.device;
+
+    // Storyboard setleri ilk kareyi kapak, son kareyi CTA yapar.
+    if (set.cover && i === 0) f.role = 'cover';
+    else if (set.cta && i === last && last > 1) {
+      f.role = 'cta';
+      if (!f.cta) f.cta = 'Ücretsiz indir';
+    } else delete f.role;
   });
   return project;
 }
