@@ -994,7 +994,9 @@ function bgTypeControls(bg) {
     case 'image':
       return `<button class="ghost" id="pickBg">Choose background image…</button>
         <div class="mini">${bg.src ? shotLabel(bg.src) : 'none selected'}</div>
-        <div class="row"><label>Blur</label><input type="range" data-bg="blur" min="0" max="100" step="1" value="${bg.blur ?? 0}"><span class="val">${bg.blur ?? 0}</span></div>`;
+        <div class="row"><label>Blur</label><input type="range" data-bg="blur" min="0" max="100" step="1" value="${bg.blur ?? 0}"><span class="val">${bg.blur ?? 0}</span></div>
+        <label class="chk"><input type="checkbox" id="bgSpan" ${bg.span ? 'checked' : ''}>Panorama — stretch across all ${state.project.frames.length} screens</label>
+        <div class="mini">Every frame shows its own slice of one wide image.</div>`;
     case 'screenshot':
       return `<div class="mini">Uses this frame's own screenshot, blurred.</div>
         <div class="row"><label>Blur</label><input type="range" data-bg="blur" min="10" max="100" step="1" value="${bg.blur ?? 70}"><span class="val">${bg.blur ?? 70}</span></div>
@@ -1061,6 +1063,16 @@ $('#panels').addEventListener('input', (e) => {
       else l.weight = +t.value;
       save(); paint();
     }
+    return;
+  }
+  if (t.id === 'bgSpan') {
+    // A panorama only makes sense across the whole set, so it goes to the
+    // project defaults and any per-frame background override is dropped.
+    const bg = resolveBackground(eff('background', 'indigo'));
+    bg.span = t.checked || undefined;
+    state.project.frames.forEach((f) => delete f.background);
+    setPath(state.project.defaults, 'background', bg);
+    save(); paint(); buildInspector();
     return;
   }
   if (t.dataset.layerbehind !== undefined) {

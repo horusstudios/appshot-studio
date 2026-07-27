@@ -406,13 +406,23 @@ export function renderFrame({
   const stripW = cont ? cw * count : cw;
   const stripX = cont ? -i * cw : 0;
 
-  const ctx = { cw: stripW, ch, screenshotURL: shots[0] || '' };
+  // A panoramic background spans the whole set even on a template that is not
+  // continuous: the background element becomes count frames wide and slides left
+  // by one frame per index, so each frame shows its own slice of one image.
+  const bgSpan = Boolean(cont) || Boolean(bgResolved.span);
+  const bgStripW = bgSpan ? cw * count : cw;
+  const bgStripX = bgSpan ? -i * cw : 0;
+
+  const ctx = { cw: bgStripW, ch, screenshotURL: shots[0] || '' };
   const bgCSS = backgroundCSS(bgResolved, ctx);
   const ovCSS = overlayCSS(bgResolved, { cw, ch });
   const dCSS = dimCSS(bgResolved);
 
   const stripStyle = cont
     ? `left:${stripX}px;width:${stripW}px;right:auto;`
+    : '';
+  const bgStripStyle = bgSpan
+    ? `left:${bgStripX}px;width:${bgStripW}px;right:auto;`
     : '';
 
   let devicesHTML;
@@ -483,7 +493,7 @@ export function renderFrame({
   // Decorative shape layer flowing along the strip.
   const shapeSpec = bgResolved.shapes;
   const shapesHTML = shapeSpec
-    ? shapesSVG(shapeSpec, { stripW, ch, cw, count: cont ? count : 1 })
+    ? shapesSVG(shapeSpec, { stripW: bgStripW, ch, cw, count: bgSpan ? count : 1 })
     : '';
 
   const scrim = tpl.scrim
@@ -493,8 +503,8 @@ export function renderFrame({
     : '';
 
   const html = `<div class="ash-canvas" data-frame="${esc(frame.id ?? '')}" style="width:${cw}px;height:${ch}px;">
-    <div class="ash-bg" style="${stripStyle}${bgCSS}"></div>
-    ${shapesHTML ? `<div class="ash-shapes" style="${stripStyle}">${shapesHTML}</div>` : ''}
+    <div class="ash-bg" style="${bgStripStyle}${bgCSS}"></div>
+    ${shapesHTML ? `<div class="ash-shapes" style="${bgStripStyle}">${shapesHTML}</div>` : ''}
     ${dCSS ? `<div class="ash-dim" style="${dCSS}"></div>` : ''}
     ${ovCSS ? `<div class="ash-pattern" style="${ovCSS}"></div>` : ''}
     ${scrim}

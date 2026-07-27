@@ -42,6 +42,16 @@ function parseArgs(argv) {
 }
 
 const num = (v, d) => (v === undefined || v === true ? d : Number(v));
+
+// `--bg image:<path>` may point anywhere on disk; copy it into the project so the
+// renderer (which serves from the project folder) can actually reach it.
+function importBackground(name, bg) {
+  if (!bg || typeof bg !== 'object' || bg.type !== 'image' || !bg.src) return bg;
+  if (bg.src.startsWith('assets/') || /^https?:/.test(bg.src)) return bg;
+  const abs = path.resolve(bg.src);
+  if (!fs.existsSync(abs)) die(`no such background image: ${abs}`);
+  return { ...bg, src: importImage(name, abs) };
+}
 const list = (v) => (typeof v === 'string' ? v.split(',').map((s) => s.trim()).filter(Boolean) : null);
 const die = (msg) => {
   console.error(`\x1b[31m${msg}\x1b[0m`);
@@ -199,7 +209,7 @@ commands.set = (a) => {
     }
     if (typeof a.flags.cta === 'string') { put(f, 'cta', a.flags.cta); f.role = 'cta'; }
     if (typeof a.flags.template === 'string') f.template = a.flags.template;
-    if (a.flags.bg) f.background = parseBackground(a.flags.bg);
+    if (a.flags.bg) f.background = importBackground(name, parseBackground(a.flags.bg));
     if (typeof a.flags.shot === 'string') {
       const src = a.flags.shot;
       const rel = fs.existsSync(path.resolve(src)) && !src.startsWith('assets/')
@@ -238,13 +248,24 @@ commands.style = (a) => {
   if (a.flags.shadow !== undefined) put('device.shadow', num(a.flags.shadow));
   if (typeof a.flags['frame-style'] === 'string') put('device.frame', a.flags['frame-style']);
 
-  const bg = parseBackground(a.flags.bg);
+  const bg = importBackground(name, parseBackground(a.flags.bg));
   const pattern = typeof a.flags.pattern === 'string' ? a.flags.pattern : null;
   const template = typeof a.flags.template === 'string' ? a.flags.template : null;
 
+  // A panorama background is shared by definition, so it always lands on the
+  // project defaults and per-frame overrides are cleared.
+  const panorama = a.flags.panorama !== undefined;
+  if (panorama) {
+    const cur = bg || (typeof p.defaults.background === 'object'
+      ? p.defaults.background
+      : { preset: p.defaults.background || 'indigo' });
+    p.defaults.background = typeof cur === 'string' ? { preset: cur, span: true } : { ...cur, span: true };
+    p.frames.forEach((f) => delete f.background);
+  }
+
   const applyTo = (target) => {
     for (const [k, v] of Object.entries(patch)) setPath(target, k, v);
-    if (bg) target.background = bg;
+    if (bg && !panorama) target.background = bg;
     if (pattern) {
       if (!PATTERNS.includes(pattern)) die(`--pattern must be one of ${PATTERNS.join(', ')}`);
       const base = typeof target.background === 'object' ? target.background : { preset: target.background || 'indigo' };
@@ -421,6 +442,7 @@ const help = `
 
   \x1b[1mStyling\x1b[0m  (no --frames = edit project defaults, applies to every frame)
     appshot style <project> [--frames all] [--template hero] [--bg "linear:160:#6366f1,#ec4899"]
+    appshot style <project> --bg image:assets/wide.jpg --panorama   (one image across every screen)
         [--font Inter] [--color "#fff"] [--title-size 6] [--subtitle-size 3.3] [--align center]
         [--uppercase] [--text-shadow 0.4] [--pattern dots] [--device-scale 1.05] [--device-y 2]
         [--rotate 8] [--shadow 0.6] [--frame-style none]

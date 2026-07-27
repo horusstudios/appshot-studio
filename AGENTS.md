@@ -108,6 +108,22 @@ appshot render <project> --locales en,tr
   `out/<project>/<locale>/<device>/` for several. File names come from that
   language's headline.
 
+### Panoramic backgrounds
+
+`background.span: true` stretches ONE background across the whole set: the background
+element becomes as wide as every frame put together and slides left by one frame per
+index, so each frame shows its own slice. It works on any template, not just the
+continuous ones, and applies to any background type — an uploaded image, a gradient
+or a mesh, along with its shape layer.
+
+```bash
+appshot style <project> --bg image:~/Desktop/wide.jpg --panorama
+```
+
+A panorama is shared by definition, so both the CLI and the editor write it to the
+project defaults and clear per-frame background overrides. `--bg image:<path>` copies
+the file into the project's assets first, so a path anywhere on disk works.
+
 ### Linked frames
 
 Frames carrying the same `group` id are consecutive slices of ONE screenshot, and
