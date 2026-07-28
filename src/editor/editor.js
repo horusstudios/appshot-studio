@@ -922,6 +922,8 @@ function buildInspector() {
     ], 'auto') +
       rowRange('Scale', 'device.scale', 0.4, 1.8, 0.01, DEFAULT_DEVICE.scale) +
       rowRange('Offset X', 'device.x', -40, 40, 0.5, 0) +
+      `<label class="chk"><input type="checkbox" data-path="device.hidden" data-kind="bool" ${eff('device.hidden', false) ? 'checked' : ''}>No device — poster frame</label>
+       <div class="mini">Drops the phone entirely; keep the background, headline and layers.</div>` +
       rowRange('Offset Y', 'device.y', -40, 60, 0.5, 0) +
       rowRange('Shadow', 'device.shadow', 0, 1, 0.05, DEFAULT_DEVICE.shadow) +
       `<div class="row"><label>Rotate</label><input type="range" data-path="device.rotate" data-kind="numnull" min="-25" max="25" step="1" value="${eff('device.rotate', 0) ?? 0}"><span class="val">${eff('device.rotate', 0) ?? 0}</span></div>
@@ -1085,7 +1087,8 @@ $('#panels').addEventListener('input', (e) => {
 
   if (t.dataset.path) {
     let v = t.value;
-    if (t.dataset.kind === 'num' || t.dataset.kind === 'numnull') v = Number(v);
+    if (t.dataset.kind === 'bool') v = t.checked;
+    else if (t.dataset.kind === 'num' || t.dataset.kind === 'numnull') v = Number(v);
     if (t.dataset.path === 'text.align' && v === '') v = null;
     if (valEl) valEl.textContent = typeof v === 'number' ? (t.step && +t.step < 1 ? v.toFixed(1) : v) : '';
     write(t.dataset.path, v);

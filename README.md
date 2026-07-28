@@ -45,7 +45,7 @@ store expects (iPhone 6.9" 1290×2796, iPad 13" 2064×2752, Play 1080×1920 …)
 
 - **16 style packs** — one click styles the whole set: background, typography, device
   settings and a template for every frame, so no frame is left half-finished.
-- **20 templates** — text-top, hero, tilt, duo, trio, full-bleed, split, corner, peek…
+- **21 templates** — text-top, hero, tilt, duo, trio, full-bleed, split, corner, peek…
 - **Continuous sets** — panorama and storyboard packs treat the whole set as one wide
   composition: the background flows across frames and some devices span two
   screenshots.
@@ -54,6 +54,8 @@ store expects (iPhone 6.9" 1290×2796, iPad 13" 2064×2752, Play 1080×1920 …)
   (blocks, blobs, waves, circles) drawn across the entire set.
 - **Pure-CSS device frames** — Dynamic Island, notch, iPad, Android punch-hole. No
   external assets, sharp at any scale.
+- **Frames with no device** — a poster template (and a *no device* switch for every
+  other one) for covers and closing cards built from a picture, a headline and layers.
 - **Layers** — stack images, text and emoji on any frame. Drag to move, round handle
   to rotate, square one to resize, ⌘C/⌘V to copy a layer onto another frame or onto
   every frame at once.

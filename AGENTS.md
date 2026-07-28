@@ -120,6 +120,24 @@ Continuous templates (`pano-flow`, `pano-tilt`, `pano-hero`) are marked with the
 left by `index`, which is why **you must pass `index` to `renderFrame`** — without it
 the index falls back to `project.frames.indexOf(frame)`.
 
+### Frames with no device
+
+Not every screenshot needs a phone in it — a cover or a closing card is often just a
+picture, a headline and some badges. Two ways to get there:
+
+- the **Poster (no device)** template (`poster`), which has `devices: []` and a large
+  headline near the top;
+- `device.hidden` on any other template, so you keep its copy placement but drop the
+  phone (**No device — poster frame** in the editor's Device section).
+
+Build the composition from the background (an image or a panorama slice) plus layers:
+an image layer for the photo, text layers for stats, an emoji or image layer for a
+badge or icon.
+
+```bash
+appshot set <project> --frames 1 --template poster
+```
+
 ### Localization
 
 ```bash

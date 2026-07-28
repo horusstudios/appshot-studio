@@ -134,6 +134,18 @@ export const TEMPLATES = {
     devices: [{ w: 74, y: 36, x: 16, rotate: 11 }],
   },
 
+  // No device at all — the frame is a poster: background image, headline and
+  // whatever layers you stack on it. Good for a cover or a closing card.
+  poster: {
+    name: 'Poster (no device)',
+    hint: 'No device frame. Just the background, a headline and your layers.',
+    text: { y: 9, height: 26, align: 'center', width: 84, anchor: 'top' },
+    devices: [],
+    cover: { text: { y: 11, width: 86 }, style: { titleSize: 8.2, subtitleSize: 3.1, gap: 2.1 } },
+    cta: { text: { y: 38, width: 78, anchor: 'top', align: 'center' },
+           style: { titleSize: 7.2, subtitleSize: 3.2, gap: 2.4 } },
+  },
+
   // --- continuous: the set reads as ONE wide artwork sliced into screenshots ---
   'pano-flow': {
     name: 'Panorama — flow',
@@ -286,7 +298,7 @@ export function getTemplate(id, deviceKind = 'phone') {
  * set, with some devices spilling over into the neighbouring frame.
  */
 export function deviceSpecFor(tpl, frameIndex, role) {
-  let spec = { ...tpl.devices[0] };
+  let spec = { ...(tpl.devices[0] || {}) };
   if (tpl.variants && tpl.variants.length) {
     spec = { ...spec, ...tpl.variants[frameIndex % tpl.variants.length] };
   }

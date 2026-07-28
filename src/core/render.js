@@ -45,6 +45,7 @@ export const DEFAULT_TEXT = {
 };
 
 export const DEFAULT_DEVICE = {
+  hidden: false,
   frame: 'auto',
   shadow: 0.5,
   scale: 1,
@@ -426,7 +427,10 @@ export function renderFrame({
     : '';
 
   let devicesHTML;
-  if (cont === 'full') {
+  if (deviceCfg.hidden) {
+    // "No device": the frame becomes a poster — background, copy and layers only.
+    devicesHTML = '';
+  } else if (cont === 'full') {
     devicesHTML = frames
       .map((fRaw, j) => {
         const f = L(fRaw);
@@ -467,7 +471,7 @@ export function renderFrame({
       : tpl.devices.map((d) => (frame.role === 'cover' && tpl.cover && tpl.cover.device
           ? { ...d, ...tpl.cover.device }
           : d));
-    const specs = span > 1
+    const specs = span > 1 && base.length
       ? [{
           ...base[0],
           x: (base[0].x ?? 0) + ((ga + gb + 1) / 2 - (i + 0.5)) * 100,
