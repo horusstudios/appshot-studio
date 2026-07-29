@@ -181,6 +181,55 @@ export const SETS = {
   },
 };
 
+// --- Poster packs ------------------------------------------------------------
+// Frames with no device: the picture, a headline and whatever layers you stack.
+// A poster frame takes the screenshot as its own background so it reads as a
+// finished cover the moment the pack is applied — swap it for a photo by
+// clicking the background.
+
+Object.assign(SETS, {
+  'poster-editorial': {
+    name: 'Poster — Editorial',
+    hint: 'Serif cover with no device, then clean device frames. Cream, ink and calm.',
+    defaults: {
+      background: { type: 'solid', color: '#efece7' },
+      text: {
+        font: 'Playfair Display', color: '#1c1917', titleSize: 6.4, titleWeight: 900,
+        titleLineHeight: 1.05, titleLetterSpacing: -2, subtitleSize: 3.0,
+        subtitleWeight: 400, subtitleColor: '#6b6560', shadow: 0,
+      },
+      device: { shadow: 0.32 },
+    },
+    sequence: ['poster', 'hero', 'text-top', 'hero', 'text-top'],
+    frameStyle: {
+      poster: {
+        background: { type: 'screenshot', blur: 0, dim: 0.55, scale: 1.06 },
+        text: { color: '#ffffff', subtitleColor: '#f2efe9', shadow: 0.55 },
+      },
+    },
+    cover: true,
+  },
+
+  'poster-photo': {
+    name: 'Poster — Photo',
+    hint: 'Every frame a full-bleed poster, no devices at all. For photo and AI apps.',
+    defaults: {
+      background: { type: 'screenshot', blur: 0, dim: 0.55, scale: 1.06 },
+      text: {
+        font: 'Outfit', color: '#ffffff', titleSize: 6.0, titleWeight: 800,
+        titleLetterSpacing: -1.8, subtitleSize: 3.1, subtitleWeight: 400, shadow: 0.6,
+        // Bottom-anchored on purpose: an app screenshot has its own header at the
+        // top, and a headline placed there collides with it.
+        anchor: 'bottom', y: 9,
+      },
+      device: { hidden: true },
+    },
+    sequence: ['poster'],
+    cover: true,
+    cta: true,
+  },
+});
+
 // --- Storyboard setleri ------------------------------------------------------
 // Here the set is ONE composition sliced into ~10 frames: background shapes cut
 // across frame edges, device size shifts from frame to frame, and some devices
@@ -329,6 +378,15 @@ export function applySet(project, setId) {
     delete f.background;
     delete f.text;
     delete f.device;
+
+    // Some templates need their own treatment — a poster frame wants the picture
+    // as its background, while the device frames keep the pack's flat colour.
+    const fs = set.frameStyle && set.frameStyle[f.template];
+    if (fs) {
+      if (fs.background) f.background = JSON.parse(JSON.stringify(fs.background));
+      if (fs.text) f.text = { ...fs.text };
+      if (fs.device) f.device = { ...fs.device };
+    }
 
     // Storyboard setleri ilk kareyi kapak, son kareyi CTA yapar.
     if (set.cover && i === 0) f.role = 'cover';

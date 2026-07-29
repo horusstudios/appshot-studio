@@ -136,7 +136,13 @@ badge or icon.
 
 ```bash
 appshot set <project> --frames 1 --template poster
+appshot pack <project> poster-editorial   # serif cover, then device frames
+appshot pack <project> poster-photo       # every frame a poster, no devices
 ```
+
+A pack can also style particular templates differently from the rest of the set
+through `frameStyle`, keyed by template id — that is how the poster packs give their
+poster frames the screenshot as a background while the device frames stay flat.
 
 ### Localization
 
