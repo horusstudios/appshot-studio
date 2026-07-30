@@ -19,7 +19,9 @@ export function safeName(name) {
     .trim()
     .replace(/[^a-zA-Z0-9._-]+/g, '-')
     .replace(/^-+|-+$/g, '');
-  if (!clean) throw new Error('Invalid project name');
+  // "." and ".." survive the character filter and would resolve outside
+  // PROJECTS_DIR, so reject any name that is only dots.
+  if (!clean || /^\.+$/.test(clean)) throw new Error('Invalid project name');
   return clean;
 }
 
